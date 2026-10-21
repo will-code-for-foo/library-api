@@ -65,15 +65,15 @@ Books are addressed by their `id` in paths. Readers are identified by library ca
     - [x] `POST /readers` returns 201 and `{ card_number, name, email }`
     - [x] Invalid input and duplicates return 422 with per-attribute `details`
 
-- [ ] **6. Borrow a book** — `POST /books/:book_id/loans` with `{ "card_number": "123456" }`
+- [x] **6. Borrow a book** — `POST /books/:book_id/loans` with `{ "card_number": "123456" }`
   - Context: borrowing creates a loan, which links a book to a reader. Each book is borrowed for 30 days, and a book can be out with only one reader at a time.
   - Acceptance criteria:
-    - [ ] A loan stores the book, the reader, when it was borrowed and the due date, which is 30 days after the borrow date
-    - [ ] A book can have only one active (not returned) loan, also guaranteed at the database level
-    - [ ] A successful borrow returns 201 and `{ book: { id, serial_number }, reader: { card_number, name, email }, borrowed_at, due_on, returned_at: null }`
-    - [ ] Borrowing an already borrowed book returns 409 `conflict` and creates no loan
-    - [ ] An unknown book or card number returns 404; a missing `card_number` returns 400
-    - [ ] Two concurrent borrow requests for the same book produce exactly one loan and one 409
+    - [x] A loan stores the book, the reader, when it was borrowed and the due date, which is 30 days after the borrow date
+    - [x] A book can have only one active (not returned) loan, also guaranteed at the database level
+    - [x] A successful borrow returns 201 and `{ book: { id, serial_number }, reader: { card_number, name, email }, borrowed_at, due_on, returned_at: null }`
+    - [x] Borrowing an already borrowed book returns 409 `conflict` and creates no loan
+    - [x] An unknown book or card number returns 404; a missing `card_number` returns 400
+    - [x] Two concurrent borrow requests for the same book produce exactly one loan and one 409
 
 - [ ] **7. Return a book** — `POST /books/:book_id/returns`
   - Context: a return closes the book's active loan and makes the book available again. The closed loan stays as history.
