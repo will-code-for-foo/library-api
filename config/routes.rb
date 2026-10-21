@@ -7,6 +7,7 @@ Rails.application.routes.draw do
 
   resources :books, only: :create do
     resources :loans, only: :create
+    resources :returns, only: :create
   end
   resources :readers, only: :create
 
