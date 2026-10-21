@@ -9,7 +9,7 @@ RSpec.describe Book, type: :model do
 
   describe 'serial_number format' do
     it { is_expected.to allow_values('000123', '123456', '999999').for(:serial_number) }
-    it { is_expected.not_to allow_values('12345', '1234567', '12345a', '12 345', "12345\n", '١٢٣٤٥٦').for(:serial_number) }
+    it { is_expected.not_to allow_values('12345', '1234567', '12345a', '12 345', "123456\n", "123456\nabc", '١٢٣٤٥٦').for(:serial_number) }
   end
 
   it 'is invalid with a serial number that is already taken' do

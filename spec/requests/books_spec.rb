@@ -73,7 +73,7 @@ RSpec.describe 'Books', type: :request do
         end
       end
 
-      it 'responds with 422 for a serial number sent as a number' do
+      it 'responds with 422 for a too short serial number sent as a number' do
         post '/books', params: params.merge(serial_number: 123), as: :json
 
         expect(response).to have_http_status(:unprocessable_content)
@@ -88,6 +88,27 @@ RSpec.describe 'Books', type: :request do
         expect { post '/books', params:, as: :json }.not_to change(Book, :count)
 
         expect(response).to have_http_status(:unprocessable_content)
+        expect(error_details).to eq('serial_number' => [ 'has already been taken' ])
+      end
+    end
+
+    context 'when another request takes the serial number after the validations passed' do
+      let(:book) { Book.new(params) }
+
+      before do
+        create(:book, serial_number: '000123')
+        validations = 0
+        allow(Book).to receive(:new).and_return(book)
+        allow(book).to receive(:valid?).and_wrap_original do |valid, *args|
+          (validations += 1) == 1 || valid.call(*args)
+        end
+      end
+
+      it 'responds with 422 and creates no book' do
+        expect { post '/books', params:, as: :json }.not_to change(Book, :count)
+
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(response.parsed_body['error']['code']).to eq('validation_failed')
         expect(error_details).to eq('serial_number' => [ 'has already been taken' ])
       end
     end
