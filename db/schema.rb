@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_21_171325) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_21_174741) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -21,6 +21,19 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_21_171325) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["serial_number"], name: "index_books_on_serial_number", unique: true
+  end
+
+  create_table "loans", force: :cascade do |t|
+    t.bigint "book_id", null: false
+    t.bigint "reader_id", null: false
+    t.datetime "borrowed_at", null: false
+    t.date "due_on", null: false
+    t.datetime "returned_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["book_id"], name: "index_loans_on_book_id"
+    t.index ["book_id"], name: "index_loans_on_book_id_active", unique: true, where: "(returned_at IS NULL)"
+    t.index ["reader_id"], name: "index_loans_on_reader_id"
   end
 
   create_table "readers", force: :cascade do |t|
@@ -183,6 +196,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_21_171325) do
     t.index ["key"], name: "index_solid_queue_semaphores_on_key", unique: true
   end
 
+  add_foreign_key "loans", "books"
+  add_foreign_key "loans", "readers"
   add_foreign_key "solid_queue_batch_executions", "solid_queue_batches", column: "batch_id", on_delete: :cascade
   add_foreign_key "solid_queue_batch_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
   add_foreign_key "solid_queue_blocked_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade

@@ -22,6 +22,20 @@ RSpec.describe ApplicationController, type: :controller do
     end
   end
 
+  context 'when a lookup finds no record of a model' do
+    before do
+      allow(controller).to receive(:index)
+        .and_raise(ActiveRecord::RecordNotFound.new(%(Couldn't find Reader with [WHERE "readers"."card_number" = $1]), 'Reader'))
+    end
+
+    it 'names the model without leaking the lookup conditions' do
+      get :index
+
+      expect(response).to have_http_status(:not_found)
+      expect(response.parsed_body).to eq(error_body(code: 'not_found', message: 'Reader not found'))
+    end
+  end
+
   context 'when the record is invalid' do
     let(:widget) do
       stub_const('Widget', Class.new do

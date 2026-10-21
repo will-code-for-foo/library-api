@@ -20,6 +20,39 @@ RSpec.describe Book, type: :model do
     expect(duplicate.errors[:serial_number]).to eq([ 'has already been taken' ])
   end
 
+  describe '#borrow!' do
+    let(:book) { create(:book) }
+    let(:reader) { create(:reader) }
+
+    it 'creates an active loan for the reader' do
+      loan = nil
+
+      expect { loan = book.borrow!(reader) }.to change(Loan, :count).by(1)
+      expect(loan).to have_attributes(book:, reader:, returned_at: nil)
+    end
+
+    it 'raises a conflict and creates no loan when the book is already borrowed' do
+      create(:loan, book:)
+
+      expect { book.borrow!(reader) }.to raise_error(ConflictError, 'Book is already borrowed')
+      expect(Loan.count).to eq(1)
+    end
+
+    it 'lets the book be borrowed again once it was returned' do
+      create(:loan, :returned, book:)
+
+      expect { book.borrow!(reader) }.to change(Loan, :count).by(1)
+    end
+
+    it 'raises a conflict when another request borrows the book after the check' do
+      create(:loan, book:)
+      allow(Loan).to receive(:active).and_return(Loan.none)
+
+      expect { book.borrow!(reader) }.to raise_error(ConflictError, 'Book is already borrowed')
+      expect(Loan.count).to eq(1)
+    end
+  end
+
   it 'rejects a duplicate serial number at the database level' do
     create(:book, serial_number: '000123')
     duplicate = build(:book, serial_number: '000123')

@@ -4,7 +4,8 @@ module ErrorHandling
 
   included do
     rescue_from ActiveRecord::RecordNotFound do |error|
-      render_error :not_found, "not_found", error.message
+      # error.message may contain the SQL conditions of the lookup, so name only the model.
+      render_error :not_found, "not_found", error.model ? "#{error.model} not found" : error.message
     end
 
     rescue_from ActiveRecord::RecordInvalid do |error|
