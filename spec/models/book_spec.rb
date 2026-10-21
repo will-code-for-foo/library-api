@@ -53,6 +53,38 @@ RSpec.describe Book, type: :model do
     end
   end
 
+  describe '#return!' do
+    let(:book) { create(:book) }
+
+    it 'closes the active loan and returns it' do
+      loan = create(:loan, book:)
+
+      returned = travel_to(Time.zone.local(2026, 10, 24, 9, 15)) { book.return! }
+
+      expect(returned).to eq(loan)
+      expect(loan.reload.returned_at).to eq(Time.zone.local(2026, 10, 24, 9, 15))
+    end
+
+    it 'raises a conflict when the book was never borrowed' do
+      expect { book.return! }.to raise_error(ConflictError, 'Book is not borrowed')
+    end
+
+    it 'raises a conflict when the book was already returned' do
+      create(:loan, :returned, book:)
+
+      expect { book.return! }.to raise_error(ConflictError, 'Book is not borrowed')
+    end
+
+    it 'does not change the loans of other books' do
+      create(:loan, book:)
+      other = create(:loan)
+
+      book.return!
+
+      expect(other.reload.returned_at).to be_nil
+    end
+  end
+
   it 'rejects a duplicate serial number at the database level' do
     create(:book, serial_number: '000123')
     duplicate = build(:book, serial_number: '000123')

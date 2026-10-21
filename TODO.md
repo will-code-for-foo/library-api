@@ -75,13 +75,13 @@ Books are addressed by their `id` in paths. Readers are identified by library ca
     - [x] An unknown book or card number returns 404; a missing `card_number` returns 400
     - [x] Two concurrent borrow requests for the same book produce exactly one loan and one 409
 
-- [ ] **7. Return a book** — `POST /books/:book_id/returns`
+- [x] **7. Return a book** — `POST /books/:book_id/returns`
   - Context: a return closes the book's active loan and makes the book available again. The closed loan stays as history.
   - Acceptance criteria:
-    - [ ] Returning a borrowed book sets the return time and returns 201 with the closed loan, in the same shape as the borrow response
-    - [ ] The book is available afterwards and can be borrowed again, creating a new loan and keeping the old one
-    - [ ] Returning a book that is not borrowed returns 409 `conflict`, including a second return of the same loan
-    - [ ] An unknown book returns 404
+    - [x] Returning a borrowed book sets the return time and returns 201 with the closed loan, in the same shape as the borrow response
+    - [x] The book is available afterwards and can be borrowed again, creating a new loan and keeping the old one
+    - [x] Returning a book that is not borrowed returns 409 `conflict`, including a second return of the same loan
+    - [x] An unknown book returns 404
 
 - [ ] **8. List all books with availability** — `GET /books`
   - Context: staff see at a glance which books are available and which are borrowed, by whom and since when.

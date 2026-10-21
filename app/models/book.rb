@@ -1,6 +1,7 @@
 class Book < ApplicationRecord
   ALREADY_BORROWED = "Book is already borrowed".freeze
-  private_constant :ALREADY_BORROWED
+  NOT_BORROWED = "Book is not borrowed".freeze
+  private_constant :ALREADY_BORROWED, :NOT_BORROWED
 
   has_many :loans
 
@@ -15,5 +16,16 @@ class Book < ApplicationRecord
   rescue ActiveRecord::RecordNotUnique
     # A concurrent request borrowed the book after the check above; the unique index on active loans caught it.
     raise ConflictError, ALREADY_BORROWED
+  end
+
+  def return!
+    transaction do
+      # The row lock makes a concurrent return wait, then find no active loan and fail with a conflict.
+      loan = loans.active.lock.take
+      raise ConflictError, NOT_BORROWED unless loan
+
+      loan.update!(returned_at: Time.current)
+      loan
+    end
   end
 end
