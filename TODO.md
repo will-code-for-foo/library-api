@@ -23,27 +23,27 @@ Books are addressed by their `id` in paths. Readers are identified by library ca
 - [x] `Dockerfile` and `docker-compose.yml` with `db`, `web` and `worker` services
 - [x] Solid Queue tables in the primary database
 
-- [ ] **1. Test setup**
+- [x] **1. Test setup**
   - Context: every following item is delivered with specs, so the test tooling has to work out of the box.
   - Acceptance criteria:
-    - [ ] Specs can use FactoryBot factories directly and the shoulda-matchers one-liners
-    - [ ] `bundle exec rspec` runs against PostgreSQL and exits 0
+    - [x] Specs can use FactoryBot factories directly and the shoulda-matchers one-liners
+    - [x] `bundle exec rspec` runs against PostgreSQL and exits 0
 
 - [ ] **2. CI runs the specs**
   - Context: CI currently runs only security scans and the linter.
   - Acceptance criteria:
     - [ ] The CI workflow runs the specs against PostgreSQL
-    - [ ] `bin/ci` runs the specs too
+    - [x] `bin/ci` runs the specs too
     - [ ] A pull request shows the spec job passing next to the existing jobs
 
-- [ ] **3. JSON responses and error handling**
+- [x] **3. JSON responses and error handling**
   - Context: all endpoints serialize with Alba and report errors the same way, so API clients handle one error format.
   - Acceptance criteria:
-    - [ ] Every error response has the shape `{ "error": { "code": "...", "message": "...", "details": { } } }`
-    - [ ] Record not found → 404 `not_found`
-    - [ ] Validation failure → 422 `validation_failed`, with `details` mapping each attribute to its messages
-    - [ ] Missing request parameter → 400 `parameter_missing`
-    - [ ] Business rule conflict (for example borrowing a borrowed book) → 409 `conflict`
+    - [x] Every error response has the shape `{ "error": { "code": "...", "message": "...", "details": { } } }`
+    - [x] Record not found → 404 `not_found`
+    - [x] Validation failure → 422 `validation_failed`, with `details` mapping each attribute to its messages
+    - [x] Missing request parameter → 400 `parameter_missing`
+    - [x] Business rule conflict (for example borrowing a borrowed book) → 409 `conflict`
 
 ## Task 2: Books, readers and loans
 
