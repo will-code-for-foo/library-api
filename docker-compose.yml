@@ -1,0 +1,48 @@
+x-app: &app
+  build: .
+  image: library-api
+  environment:
+    DATABASE_URL: postgres://library_api:library_api@db:5432/library_api_production
+    # Demo value so the app boots without config/master.key. Override with SECRET_KEY_BASE.
+    SECRET_KEY_BASE: ${SECRET_KEY_BASE:-demo-only-secret-key-base-override-with-the-SECRET_KEY_BASE-variable}
+
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: library_api
+      POSTGRES_PASSWORD: library_api
+      POSTGRES_DB: library_api_production
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U library_api -d library_api_production"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Creates or migrates the database on boot (bin/docker-entrypoint), then serves the API.
+  web:
+    <<: *app
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/up"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  # Solid Queue: processes jobs and runs the recurring tasks from config/recurring.yml.
+  worker:
+    <<: *app
+    command: ["./bin/jobs"]
+    depends_on:
+      web:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
