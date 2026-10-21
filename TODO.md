@@ -16,36 +16,36 @@ Work through the list top to bottom, one feature at a time. Tick an item when ev
 
 Books are addressed by their `id` in paths. Readers are identified by library card number in the request body. Serial numbers and card numbers are strings, so leading zeros are kept.
 
-## Foundation
+## Task 1: Foundation
 
 - [x] Rails 8.1.4 API-only app on Ruby 4.0.7 with PostgreSQL
 - [x] RSpec, FactoryBot, shoulda-matchers, Alba and Solid Queue in the Gemfile
 - [x] `Dockerfile` and `docker-compose.yml` with `db`, `web` and `worker` services
 - [x] Solid Queue tables in the primary database
 
-- [ ] **1. Test setup**
+- [x] **1. Test setup**
   - Context: every following item is delivered with specs, so the test tooling has to work out of the box.
   - Acceptance criteria:
-    - [ ] Specs can use FactoryBot factories directly and the shoulda-matchers one-liners
-    - [ ] `bundle exec rspec` runs against PostgreSQL and exits 0
+    - [x] Specs can use FactoryBot factories directly and the shoulda-matchers one-liners
+    - [x] `bundle exec rspec` runs against PostgreSQL and exits 0
 
-- [ ] **2. CI runs the specs**
+- [x] **2. CI runs the specs**
   - Context: CI currently runs only security scans and the linter.
   - Acceptance criteria:
-    - [ ] The CI workflow runs the specs against PostgreSQL
-    - [ ] `bin/ci` runs the specs too
-    - [ ] A pull request shows the spec job passing next to the existing jobs
+    - [x] The CI workflow runs the specs against PostgreSQL
+    - [x] `bin/ci` runs the specs too
+    - [x] A pull request shows the spec job passing next to the existing jobs
 
-- [ ] **3. JSON responses and error handling**
+- [x] **3. JSON responses and error handling**
   - Context: all endpoints serialize with Alba and report errors the same way, so API clients handle one error format.
   - Acceptance criteria:
-    - [ ] Every error response has the shape `{ "error": { "code": "...", "message": "...", "details": { } } }`
-    - [ ] Record not found → 404 `not_found`
-    - [ ] Validation failure → 422 `validation_failed`, with `details` mapping each attribute to its messages
-    - [ ] Missing request parameter → 400 `parameter_missing`
-    - [ ] Business rule conflict (for example borrowing a borrowed book) → 409 `conflict`
+    - [x] Every error response has the shape `{ "error": { "code": "...", "message": "...", "details": { } } }`
+    - [x] Record not found → 404 `not_found`
+    - [x] Validation failure → 422 `validation_failed`, with `details` mapping each attribute to its messages
+    - [x] Missing request parameter → 400 `parameter_missing`
+    - [x] Business rule conflict (for example borrowing a borrowed book) → 409 `conflict`
 
-## Books, readers and loans
+## Task 2: Books, readers and loans
 
 - [ ] **4. Add a new book** — `POST /books`
   - Context: staff add books to the catalogue. A book has a six-digit serial number, a title and an author.
@@ -113,7 +113,7 @@ Books are addressed by their `id` in paths. Readers are identified by library ca
     - [ ] Deleting a borrowed book returns 409 `conflict` and the book and its loan are unchanged
     - [ ] An unknown book id returns 404
 
-## Email reminders
+## Task 3: Email reminders
 
 - [ ] **11. Reminder emails**
   - Context: readers get two emails about a loan, 3 days before the due date and on the due date. Emails are never really sent: the payload is logged and previews are available.
@@ -134,7 +134,7 @@ Books are addressed by their `id` in paths. Readers are identified by library ca
     - [ ] A reader with two loans due on the same day gets two emails
     - [ ] After `docker compose up` the `worker` service runs the recurring task and the email payloads show up in `docker compose logs worker`
 
-## Delivery
+## Task 4: Delivery
 
 - [ ] **13. Seed data**
   - Context: a reviewer should be able to try every endpoint right after `docker compose up`.
