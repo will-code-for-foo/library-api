@@ -29,12 +29,12 @@ Books are addressed by their `id` in paths. Readers are identified by library ca
     - [x] Specs can use FactoryBot factories directly and the shoulda-matchers one-liners
     - [x] `bundle exec rspec` runs against PostgreSQL and exits 0
 
-- [ ] **2. CI runs the specs**
+- [x] **2. CI runs the specs**
   - Context: CI currently runs only security scans and the linter.
   - Acceptance criteria:
-    - [ ] The CI workflow runs the specs against PostgreSQL
+    - [x] The CI workflow runs the specs against PostgreSQL
     - [x] `bin/ci` runs the specs too
-    - [ ] A pull request shows the spec job passing next to the existing jobs
+    - [x] A pull request shows the spec job passing next to the existing jobs
 
 - [x] **3. JSON responses and error handling**
   - Context: all endpoints serialize with Alba and report errors the same way, so API clients handle one error format.
