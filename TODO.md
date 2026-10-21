@@ -56,14 +56,14 @@ Books are addressed by their `id` in paths. Readers are identified by library ca
     - [x] `POST /books` with `serial_number`, `title` and `author` returns 201 and the book as `{ id, serial_number, title, author }`
     - [x] Missing fields, a malformed serial number and a duplicate serial number return 422 with per-attribute `details`
 
-- [ ] **5. Register a reader** — `POST /readers`
+- [x] **5. Register a reader** — `POST /readers`
   - Context: staff need a way to create readers, otherwise nothing can be borrowed through the API. A reader has a six-digit library card number, a name and an email.
   - Acceptance criteria:
-    - [ ] `card_number` is required, exactly six digits and unique, also guaranteed at the database level
-    - [ ] `name` is required
-    - [ ] `email` is required, has a valid format and is unique ignoring case and surrounding whitespace (`Ann@Example.com` and `ann@example.com` collide)
-    - [ ] `POST /readers` returns 201 and `{ card_number, name, email }`
-    - [ ] Invalid input and duplicates return 422 with per-attribute `details`
+    - [x] `card_number` is required, exactly six digits and unique, also guaranteed at the database level
+    - [x] `name` is required
+    - [x] `email` is required, has a valid format and is unique ignoring case and surrounding whitespace (`Ann@Example.com` and `ann@example.com` collide)
+    - [x] `POST /readers` returns 201 and `{ card_number, name, email }`
+    - [x] Invalid input and duplicates return 422 with per-attribute `details`
 
 - [ ] **6. Borrow a book** — `POST /books/:book_id/loans` with `{ "card_number": "123456" }`
   - Context: borrowing creates a loan, which links a book to a reader. Each book is borrowed for 30 days, and a book can be out with only one reader at a time.

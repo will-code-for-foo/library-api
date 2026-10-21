@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_21_163455) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_21_171325) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -21,6 +21,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_21_163455) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["serial_number"], name: "index_books_on_serial_number", unique: true
+  end
+
+  create_table "readers", force: :cascade do |t|
+    t.string "card_number", null: false
+    t.string "name", null: false
+    t.string "email", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index "lower((email)::text)", name: "index_readers_on_lower_email", unique: true
+    t.index ["card_number"], name: "index_readers_on_card_number", unique: true
   end
 
   create_table "solid_queue_batch_executions", force: :cascade do |t|
