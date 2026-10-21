@@ -16,7 +16,7 @@ Work through the list top to bottom, one feature at a time. Tick an item when ev
 
 Books are addressed by their `id` in paths. Readers are identified by library card number in the request body. Serial numbers and card numbers are strings, so leading zeros are kept.
 
-## Foundation
+## Task 1: Foundation
 
 - [x] Rails 8.1.4 API-only app on Ruby 4.0.7 with PostgreSQL
 - [x] RSpec, FactoryBot, shoulda-matchers, Alba and Solid Queue in the Gemfile
@@ -45,7 +45,7 @@ Books are addressed by their `id` in paths. Readers are identified by library ca
     - [ ] Missing request parameter → 400 `parameter_missing`
     - [ ] Business rule conflict (for example borrowing a borrowed book) → 409 `conflict`
 
-## Books, readers and loans
+## Task 2: Books, readers and loans
 
 - [ ] **4. Add a new book** — `POST /books`
   - Context: staff add books to the catalogue. A book has a six-digit serial number, a title and an author.
@@ -113,7 +113,7 @@ Books are addressed by their `id` in paths. Readers are identified by library ca
     - [ ] Deleting a borrowed book returns 409 `conflict` and the book and its loan are unchanged
     - [ ] An unknown book id returns 404
 
-## Email reminders
+## Task 3: Email reminders
 
 - [ ] **11. Reminder emails**
   - Context: readers get two emails about a loan, 3 days before the due date and on the due date. Emails are never really sent: the payload is logged and previews are available.
@@ -134,7 +134,7 @@ Books are addressed by their `id` in paths. Readers are identified by library ca
     - [ ] A reader with two loans due on the same day gets two emails
     - [ ] After `docker compose up` the `worker` service runs the recurring task and the email payloads show up in `docker compose logs worker`
 
-## Delivery
+## Task 4: Delivery
 
 - [ ] **13. Seed data**
   - Context: a reviewer should be able to try every endpoint right after `docker compose up`.
