@@ -47,14 +47,14 @@ Books are addressed by their `id` in paths. Readers are identified by library ca
 
 ## Task 2: Books, readers and loans
 
-- [ ] **4. Add a new book** — `POST /books`
+- [x] **4. Add a new book** — `POST /books`
   - Context: staff add books to the catalogue. A book has a six-digit serial number, a title and an author.
   - Acceptance criteria:
-    - [ ] `serial_number` is required and is exactly six digits (`"000123"` is valid; `"12345"`, `"1234567"` and `"12345a"` are not)
-    - [ ] `serial_number` is unique, also guaranteed at the database level
-    - [ ] `title` and `author` are required and may not be blank
-    - [ ] `POST /books` with `serial_number`, `title` and `author` returns 201 and the book as `{ id, serial_number, title, author }`
-    - [ ] Missing fields, a malformed serial number and a duplicate serial number return 422 with per-attribute `details`
+    - [x] `serial_number` is required and is exactly six digits (`"000123"` is valid; `"12345"`, `"1234567"` and `"12345a"` are not)
+    - [x] `serial_number` is unique, also guaranteed at the database level
+    - [x] `title` and `author` are required and may not be blank
+    - [x] `POST /books` with `serial_number`, `title` and `author` returns 201 and the book as `{ id, serial_number, title, author }`
+    - [x] Missing fields, a malformed serial number and a duplicate serial number return 422 with per-attribute `details`
 
 - [ ] **5. Register a reader** — `POST /readers`
   - Context: staff need a way to create readers, otherwise nothing can be borrowed through the API. A reader has a six-digit library card number, a name and an email.
