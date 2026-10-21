@@ -4,17 +4,17 @@ Work through the list top to bottom, one feature at a time. Tick an item when ev
 
 ## API overview
 
-| Method   | Path                           | Item |
-|----------|--------------------------------|------|
-| `POST`   | `/books`                       | 4    |
-| `POST`   | `/readers`                     | 5    |
-| `POST`   | `/books/:serial_number/borrow` | 6    |
-| `POST`   | `/books/:serial_number/return` | 7    |
-| `GET`    | `/books`                       | 8    |
-| `GET`    | `/books/:serial_number`        | 9    |
-| `DELETE` | `/books/:serial_number`        | 10   |
+| Method   | Path                      | Item |
+|----------|---------------------------|------|
+| `POST`   | `/books`                  | 4    |
+| `POST`   | `/readers`                | 5    |
+| `POST`   | `/books/:book_id/loans`   | 6    |
+| `POST`   | `/books/:book_id/returns` | 7    |
+| `GET`    | `/books`                  | 8    |
+| `GET`    | `/books/:id`              | 9    |
+| `DELETE` | `/books/:id`              | 10   |
 
-Books are addressed by serial number and readers by library card number. Both are strings, so leading zeros are kept.
+Books are addressed by their `id` in paths. Readers are identified by library card number in the request body. Serial numbers and card numbers are strings, so leading zeros are kept.
 
 ## Foundation
 
@@ -53,7 +53,7 @@ Books are addressed by serial number and readers by library card number. Both ar
     - [ ] `serial_number` is required and is exactly six digits (`"000123"` is valid; `"12345"`, `"1234567"` and `"12345a"` are not)
     - [ ] `serial_number` is unique, also guaranteed at the database level
     - [ ] `title` and `author` are required and may not be blank
-    - [ ] `POST /books` with `serial_number`, `title` and `author` returns 201 and the book as `{ serial_number, title, author }`
+    - [ ] `POST /books` with `serial_number`, `title` and `author` returns 201 and the book as `{ id, serial_number, title, author }`
     - [ ] Missing fields, a malformed serial number and a duplicate serial number return 422 with per-attribute `details`
 
 - [ ] **5. Register a reader** — `POST /readers`
@@ -65,20 +65,20 @@ Books are addressed by serial number and readers by library card number. Both ar
     - [ ] `POST /readers` returns 201 and `{ card_number, name, email }`
     - [ ] Invalid input and duplicates return 422 with per-attribute `details`
 
-- [ ] **6. Borrow a book** — `POST /books/:serial_number/borrow` with `{ "card_number": "123456" }`
-  - Context: a loan links a book to a reader. Each book is borrowed for 30 days, and a book can be out with only one reader at a time.
+- [ ] **6. Borrow a book** — `POST /books/:book_id/loans` with `{ "card_number": "123456" }`
+  - Context: borrowing creates a loan, which links a book to a reader. Each book is borrowed for 30 days, and a book can be out with only one reader at a time.
   - Acceptance criteria:
     - [ ] A loan stores the book, the reader, when it was borrowed and the due date, which is 30 days after the borrow date
     - [ ] A book can have only one active (not returned) loan, also guaranteed at the database level
-    - [ ] A successful borrow returns 201 and `{ book: serial_number, reader: { card_number, name, email }, borrowed_at, due_on, returned_at: null }`
+    - [ ] A successful borrow returns 201 and `{ book: { id, serial_number }, reader: { card_number, name, email }, borrowed_at, due_on, returned_at: null }`
     - [ ] Borrowing an already borrowed book returns 409 `conflict` and creates no loan
     - [ ] An unknown book or card number returns 404; a missing `card_number` returns 400
     - [ ] Two concurrent borrow requests for the same book produce exactly one loan and one 409
 
-- [ ] **7. Return a book** — `POST /books/:serial_number/return`
-  - Context: returning closes the active loan and makes the book available again. The closed loan stays as history.
+- [ ] **7. Return a book** — `POST /books/:book_id/returns`
+  - Context: a return closes the book's active loan and makes the book available again. The closed loan stays as history.
   - Acceptance criteria:
-    - [ ] Returning a borrowed book sets the return time and returns 200 with the loan
+    - [ ] Returning a borrowed book sets the return time and returns 201 with the closed loan, in the same shape as the borrow response
     - [ ] The book is available afterwards and can be borrowed again, creating a new loan and keeping the old one
     - [ ] Returning a book that is not borrowed returns 409 `conflict`, including a second return of the same loan
     - [ ] An unknown book returns 404
@@ -86,7 +86,7 @@ Books are addressed by serial number and readers by library card number. Both ar
 - [ ] **8. List all books with availability** — `GET /books`
   - Context: staff see at a glance which books are available and which are borrowed, by whom and since when.
   - Acceptance criteria:
-    - [ ] Returns 200 with an array of `{ serial_number, title, author, status, current_loan }`
+    - [ ] Returns 200 with an array of `{ id, serial_number, title, author, status, current_loan }`
     - [ ] `status` is `"available"` or `"borrowed"`
     - [ ] For an available book `current_loan` is `null`; for a borrowed book it is `{ borrowed_at, due_on, overdue, reader: { card_number, name, email } }`
     - [ ] `overdue` is `true` only when the loan is active and `due_on` is before today (additional logic: it lets staff spot late books)
@@ -95,23 +95,23 @@ Books are addressed by serial number and readers by library card number. Both ar
     - [ ] The number of SQL queries does not grow with the number of books
     - [ ] The response of `POST /books` includes the new fields as well
 
-- [ ] **9. Show a book with its borrowing history** — `GET /books/:serial_number`
+- [ ] **9. Show a book with its borrowing history** — `GET /books/:id`
   - Context: staff look up one book together with every time it was borrowed and by whom.
   - Acceptance criteria:
     - [ ] Returns 200 with the book fields of item 8 plus `loans`
     - [ ] `loans` lists every loan, newest first, as `{ borrowed_at, due_on, returned_at, reader: { card_number, name, email } }`
     - [ ] The active loan is included with `returned_at: null`
     - [ ] A book that was never borrowed has `loans: []`
-    - [ ] An unknown serial number returns 404
+    - [ ] An unknown book id returns 404
     - [ ] The number of SQL queries does not grow with the number of loans
 
-- [ ] **10. Delete a book** — `DELETE /books/:serial_number`
+- [ ] **10. Delete a book** — `DELETE /books/:id`
   - Context: staff remove books that left the library. A book that is currently borrowed must not disappear from under its reader.
   - Acceptance criteria:
     - [ ] Deleting an available book returns 204 and the book no longer appears in `GET /books`
     - [ ] The loan history of a deleted book is deleted with it
     - [ ] Deleting a borrowed book returns 409 `conflict` and the book and its loan are unchanged
-    - [ ] An unknown serial number returns 404
+    - [ ] An unknown book id returns 404
 
 ## Email reminders
 
