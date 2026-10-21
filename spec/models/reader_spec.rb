@@ -14,13 +14,7 @@ RSpec.describe Reader, type: :model do
 
   describe 'email format' do
     it { is_expected.to allow_values('ann@example.com', 'ann.smith+library@mail.example.org').for(:email) }
-    it { is_expected.not_to allow_values('ann', 'ann@', '@example.com', 'ann@@example.com', 'ann example@example.com').for(:email) }
-  end
-
-  describe 'email normalization' do
-    it 'strips surrounding whitespace and lowercases the email' do
-      expect(build(:reader, email: "  Ann@Example.com\n").email).to eq('ann@example.com')
-    end
+    it { is_expected.not_to allow_values('ann', 'ann@', '@example.com', 'ann@@example.com', 'ann example@example.com', ' ann@example.com ', "ann@example.com\n").for(:email) }
 
     it 'treats an email of only whitespace as blank' do
       reader = build(:reader, email: '   ')
@@ -38,10 +32,10 @@ RSpec.describe Reader, type: :model do
     expect(duplicate.errors[:card_number]).to eq([ 'has already been taken' ])
   end
 
-  it 'is invalid with an email that is already taken, ignoring case and surrounding whitespace' do
+  it 'is invalid with an email that is already taken, ignoring case' do
     create(:reader, email: 'ann@example.com')
 
-    [ 'ann@example.com', 'Ann@Example.com', '  ann@example.com ' ].each do |email|
+    [ 'ann@example.com', 'Ann@Example.com', 'ANN@EXAMPLE.COM' ].each do |email|
       duplicate = build(:reader, email:)
 
       expect(duplicate).not_to be_valid
@@ -56,7 +50,7 @@ RSpec.describe Reader, type: :model do
     expect { duplicate.save!(validate: false) }.to raise_error(ActiveRecord::RecordNotUnique)
   end
 
-  it 'rejects a duplicate email at the database level' do
+  it 'rejects a duplicate email at the database level, ignoring case' do
     create(:reader, email: 'ann@example.com')
     duplicate = build(:reader, email: 'Ann@Example.com')
 

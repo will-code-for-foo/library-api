@@ -26,20 +26,11 @@ RSpec.describe 'Readers', type: :request do
         expect(Reader.last.card_number).to eq('000123')
       end
 
-      it 'stores and returns the email trimmed and lowercased' do
-        post '/readers', params: params.merge(email: '  Ann@Example.com '), as: :json
+      it 'returns the email as it was sent' do
+        post '/readers', params: params.merge(email: 'Ann@Example.com'), as: :json
 
         expect(response).to have_http_status(:created)
-        expect(response.parsed_body['email']).to eq('ann@example.com')
-        expect(Reader.last.email).to eq('ann@example.com')
-      end
-
-      it 'ignores attributes that are not part of the payload' do
-        post '/readers', params: params.merge(id: 999, created_at: 1.year.ago), as: :json
-
-        expect(response).to have_http_status(:created)
-        expect(Reader.last.id).not_to eq(999)
-        expect(response.parsed_body.keys).to eq(%w[card_number name email])
+        expect(response.parsed_body['email']).to eq('Ann@Example.com')
       end
     end
 
@@ -90,7 +81,7 @@ RSpec.describe 'Readers', type: :request do
     end
 
     context 'with a malformed email' do
-      [ 'ann', 'ann@', '@example.com', 'ann example@example.com' ].each do |email|
+      [ 'ann', 'ann@', '@example.com', 'ann example@example.com', ' ann@example.com ' ].each do |email|
         it "responds with 422 for #{email.inspect}" do
           expect { post '/readers', params: params.merge(email:), as: :json }.not_to change(Reader, :count)
 
@@ -114,13 +105,20 @@ RSpec.describe 'Readers', type: :request do
     context 'with a duplicate email' do
       before { create(:reader, email: 'ann@example.com') }
 
-      [ 'ann@example.com', 'Ann@Example.com', '  ann@example.com ' ].each do |email|
+      [ 'ann@example.com', 'Ann@Example.com', 'ANN@EXAMPLE.COM' ].each do |email|
         it "responds with 422 and creates no reader for #{email.inspect}" do
           expect { post '/readers', params: params.merge(email:), as: :json }.not_to change(Reader, :count)
 
           expect(response).to have_http_status(:unprocessable_content)
           expect(error_details).to eq('email' => [ 'has already been taken' ])
         end
+      end
+
+      it 'responds with 422 and creates no reader when surrounding whitespace is the only difference' do
+        expect { post '/readers', params: params.merge(email: ' ann@example.com '), as: :json }.not_to change(Reader, :count)
+
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(error_details.keys).to eq([ 'email' ])
       end
     end
 

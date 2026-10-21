@@ -29,8 +29,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_21_171325) do
     t.string "email", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index "lower((email)::text)", name: "index_readers_on_lower_email", unique: true
     t.index ["card_number"], name: "index_readers_on_card_number", unique: true
-    t.index ["email"], name: "index_readers_on_email", unique: true
   end
 
   create_table "solid_queue_batch_executions", force: :cascade do |t|

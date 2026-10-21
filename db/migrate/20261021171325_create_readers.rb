@@ -8,6 +8,6 @@ class CreateReaders < ActiveRecord::Migration[8.1]
       t.timestamps
     end
     add_index :readers, :card_number, unique: true
-    add_index :readers, :email, unique: true
+    add_index :readers, "lower(email)", unique: true, name: "index_readers_on_lower_email"
   end
 end
