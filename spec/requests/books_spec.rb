@@ -227,6 +227,15 @@ RSpec.describe 'Books', type: :request do
 
         expect(response).to have_http_status(:not_found)
       end
+
+      %w[abc .5].each do |suffix|
+        it "responds with 404 instead of showing the book when #{suffix.inspect} follows its id" do
+          get "/books/#{book.id}#{suffix}"
+
+          expect(response).to have_http_status(:not_found)
+          expect(response.parsed_body['error']['code']).to eq('not_found')
+        end
+      end
     end
 
     it 'takes the same number of queries however many loans the book has' do

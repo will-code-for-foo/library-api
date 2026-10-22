@@ -156,5 +156,11 @@ RSpec.describe 'Readers', type: :request do
         expect(error_details).to eq('card_number' => [ 'has already been taken' ])
       end
     end
+
+    it 'does not route a format suffix' do
+      expect { post '/readers.json', params:, as: :json }.not_to change(Reader, :count)
+
+      expect(response).to have_http_status(:not_found)
+    end
   end
 end

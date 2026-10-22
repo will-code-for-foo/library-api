@@ -97,6 +97,18 @@ RSpec.describe 'Returns', type: :request do
         expect(response).to have_http_status(:not_found)
         expect(error).to include('code' => 'not_found', 'message' => 'Book not found')
       end
+
+      %w[abc .5].each do |suffix|
+        it "responds with 404 and keeps the loan open when #{suffix.inspect} follows the id of a borrowed book" do
+          create(:loan, book:)
+
+          give_back(book_id: "#{book.id}#{suffix}")
+
+          expect(response).to have_http_status(:not_found)
+          expect(error['code']).to eq('not_found')
+          expect(book.loans.active).to exist
+        end
+      end
     end
 
     it 'supports the whole cycle: borrow, return, borrow again' do
