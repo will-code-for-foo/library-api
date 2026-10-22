@@ -64,7 +64,7 @@ bin/ci   # RuboCop, gem audit, Brakeman, specs
 ## Design decisions
 
 - **Unique constraints in the database too** (serial, card number, `lower(email)`, one active loan per book): validations alone lose races.
-- **`loans` and `returns` as resources under books**: routes stay resourceful, a loan or a return is something the API creates.
+- **Resourceful routes**: an operation with no standard action becomes its own resource in a namespace: `Books::LoansController` and `Books::ReturnsController` (`app/controllers/books/`) behind `POST /books/:book_id/loans` and `/returns`.
 - **Domain logic stays in controllers and models**: it is small. If it grows, it moves to service objects; request specs then cover only the controller layer and service specs the business logic.
 - **One error format with a stable `code`**: clients branch on the code, not the message.
 - **Alba resources**: each response contract lives in one small class.

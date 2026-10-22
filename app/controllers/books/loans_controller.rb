@@ -1,4 +1,4 @@
-class LoansController < ApplicationController
+class Books::LoansController < ApplicationController
   def create
     card_number = params.expect(:card_number)
     book = Book.find(params[:book_id])
