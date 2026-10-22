@@ -114,6 +114,46 @@ RSpec.describe Book, type: :model do
       expect { book.borrow!(reader) }.to raise_error(ConflictError, 'Book is already borrowed')
       expect(Loan.count).to eq(1)
     end
+
+    it 'raises not found when the book was deleted after it was loaded' do
+      described_class.delete(book.id)
+
+      expect { book.borrow!(reader) }.to raise_error(ActiveRecord::RecordNotFound) { |error| expect(error.model).to eq('Book') }
+    end
+  end
+
+  describe '#remove!' do
+    let(:book) { create(:book) }
+
+    it 'deletes an available book' do
+      book.remove!
+
+      expect(described_class.exists?(book.id)).to be(false)
+    end
+
+    it 'deletes the loan history of the book with it and leaves the loans of other books' do
+      create_list(:loan, 2, :returned, book:)
+      other = create(:loan)
+
+      expect { book.remove! }.to change(Loan, :count).by(-2)
+      expect(other.reload).to be_present
+    end
+
+    it 'raises a conflict and deletes nothing when the book is borrowed' do
+      loan = create(:loan, book:)
+      create(:loan, :returned, book:, borrowed_at: 3.days.ago)
+
+      expect { book.remove! }.to raise_error(ConflictError, 'Borrowed book cannot be deleted')
+      expect(described_class.exists?(book.id)).to be(true)
+      expect(Loan.where(book:).count).to eq(2)
+      expect(loan.reload.returned_at).to be_nil
+    end
+
+    it 'raises not found when the book was already deleted' do
+      described_class.delete(book.id)
+
+      expect { book.remove! }.to raise_error(ActiveRecord::RecordNotFound)
+    end
   end
 
   describe '#return!' do
