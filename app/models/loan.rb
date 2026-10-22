@@ -9,6 +9,7 @@ class Loan < ApplicationRecord
   validates :borrowed_at, :due_on, presence: true
 
   scope :active, -> { where(returned_at: nil) }
+  scope :newest_first, -> { order(borrowed_at: :desc, id: :desc) }
 
   def overdue?
     returned_at.nil? && due_on < Date.current

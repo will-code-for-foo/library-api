@@ -7,6 +7,7 @@ class Book < ApplicationRecord
 
   has_many :loans
   has_one :active_loan, -> { active }, class_name: "Loan"
+  has_many :loan_history, -> { newest_first }, class_name: "Loan"
 
   validates :serial_number, presence: true, uniqueness: true
   validates :serial_number, format: { with: /\A\d{6}\z/, message: "must be exactly six digits" }, allow_blank: true
@@ -14,6 +15,8 @@ class Book < ApplicationRecord
 
   # Loads the active loan and its reader together with the books, so that listing books takes a constant number of queries.
   scope :with_current_loan, -> { includes(active_loan: :reader) }
+  # Same for the borrowing history, so that showing a book takes a constant number of queries however many loans it has.
+  scope :with_loan_history, -> { includes(loan_history: :reader) }
 
   def status
     active_loan ? BORROWED : AVAILABLE

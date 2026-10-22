@@ -1,14 +1,14 @@
 require 'rails_helper'
 
 RSpec.describe 'Books', type: :request do
-  describe 'GET /books' do
-    def count_queries(&)
-      count = 0
-      counter = ->(*, payload) { count += 1 unless payload[:name] == 'SCHEMA' || payload[:cached] }
-      ActiveSupport::Notifications.subscribed(counter, 'sql.active_record', &)
-      count
-    end
+  def count_queries(&)
+    count = 0
+    counter = ->(*, payload) { count += 1 unless payload[:name] == 'SCHEMA' || payload[:cached] }
+    ActiveSupport::Notifications.subscribed(counter, 'sql.active_record', &)
+    count
+  end
 
+  describe 'GET /books' do
     context 'when the library has no books' do
       it 'responds with 200 and an empty array' do
         get '/books'
@@ -128,6 +128,118 @@ RSpec.describe 'Books', type: :request do
         expect(response.parsed_body.size).to eq(13)
         expect(queries_for_many_books).to eq(queries_for_one_book)
       end
+    end
+  end
+
+  describe 'GET /books/:id' do
+    let(:book) { create(:book, serial_number: '000123', title: 'Clean Code', author: 'Robert C. Martin') }
+    let(:ann) { create(:reader, card_number: '000456', name: 'Ann Kowalska', email: 'ann@example.com') }
+    let(:bob) { create(:reader, card_number: '000789', name: 'Bob Nowak', email: 'bob@example.com') }
+
+    context 'when the book was never borrowed' do
+      it 'responds with 200, the book fields and an empty history' do
+        get "/books/#{book.id}"
+
+        expect(response).to have_http_status(:ok)
+        expect(response.parsed_body).to eq(
+          'id' => book.id,
+          'serial_number' => '000123',
+          'title' => 'Clean Code',
+          'author' => 'Robert C. Martin',
+          'status' => 'available',
+          'current_loan' => nil,
+          'loans' => []
+        )
+      end
+    end
+
+    context 'when the book was borrowed several times' do
+      before do
+        create(:loan, :returned, book:, reader: ann, borrowed_at: Time.zone.local(2026, 8, 1, 10))
+        create(:loan, :returned, book:, reader: bob, borrowed_at: Time.zone.local(2026, 9, 5, 14, 30))
+        create(:loan, book:, reader: ann, borrowed_at: Time.zone.local(2026, 10, 21, 12, 30))
+      end
+
+      it 'lists every loan with its reader, the active one included with returned_at null' do
+        get "/books/#{book.id}"
+
+        expect(response).to have_http_status(:ok)
+        expect(response.parsed_body['loans']).to eq([
+          {
+            'borrowed_at' => '2026-10-21T12:30:00.000Z',
+            'due_on' => '2026-11-20',
+            'returned_at' => nil,
+            'reader' => { 'card_number' => '000456', 'name' => 'Ann Kowalska', 'email' => 'ann@example.com' }
+          },
+          {
+            'borrowed_at' => '2026-09-05T14:30:00.000Z',
+            'due_on' => '2026-10-05',
+            'returned_at' => '2026-09-06T14:30:00.000Z',
+            'reader' => { 'card_number' => '000789', 'name' => 'Bob Nowak', 'email' => 'bob@example.com' }
+          },
+          {
+            'borrowed_at' => '2026-08-01T10:00:00.000Z',
+            'due_on' => '2026-08-31',
+            'returned_at' => '2026-08-02T10:00:00.000Z',
+            'reader' => { 'card_number' => '000456', 'name' => 'Ann Kowalska', 'email' => 'ann@example.com' }
+          }
+        ])
+      end
+
+      it 'shows the status and the current loan like the list does' do
+        get "/books/#{book.id}"
+
+        expect(response.parsed_body).to include('status' => 'borrowed')
+        expect(response.parsed_body['current_loan']).to include('borrowed_at' => '2026-10-21T12:30:00.000Z')
+      end
+
+      it 'does not list the loans of other books' do
+        create(:loan)
+
+        get "/books/#{book.id}"
+
+        expect(response.parsed_body['loans'].size).to eq(3)
+      end
+    end
+
+    context 'when the book was borrowed and returned' do
+      it 'shows it as available with the returned loan in the history' do
+        create(:loan, :returned, book:, reader: ann)
+
+        get "/books/#{book.id}"
+
+        expect(response.parsed_body).to include('status' => 'available', 'current_loan' => nil)
+        expect(response.parsed_body['loans'].size).to eq(1)
+        expect(response.parsed_body['loans'].first['returned_at']).to be_present
+      end
+    end
+
+    context 'when the book does not exist' do
+      it 'responds with 404' do
+        get '/books/0'
+
+        expect(response).to have_http_status(:not_found)
+        expect(response.parsed_body['error']).to include('code' => 'not_found', 'message' => 'Book not found')
+      end
+
+      it 'responds with 404 for an id that is not a number' do
+        get '/books/abc'
+
+        expect(response).to have_http_status(:not_found)
+      end
+    end
+
+    it 'takes the same number of queries however many loans the book has' do
+      create(:loan, book:)
+      create_list(:loan, 2, :returned, book:)
+      get "/books/#{book.id}"
+      queries_for_few_loans = count_queries { get "/books/#{book.id}" }
+
+      create_list(:loan, 8, :returned, book:)
+      queries_for_many_loans = count_queries { get "/books/#{book.id}" }
+
+      expect(response.parsed_body['loans'].size).to eq(11)
+      expect(queries_for_many_loans).to eq(queries_for_few_loans)
     end
   end
 
