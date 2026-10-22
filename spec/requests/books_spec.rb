@@ -455,29 +455,21 @@ RSpec.describe 'Books', type: :request do
   end
 
   describe 'DELETE /books/:id racing with a borrow request' do
-    self.use_transactional_tests = false
+    include_context 'with concurrent requests'
 
     let!(:book) { create(:book) }
     let!(:reader) { create(:reader) }
 
-    after do
-      Loan.delete_all
-      Reader.delete_all
-      Book.delete_all
-    end
-
     # Holds the delete request for a moment right after it checked that the book is not borrowed, which gives
     # the borrow request time to try to create a loan before the book is deleted.
-    def hold_delete_after_availability_check(started)
-      subscriber = ActiveSupport::Notifications.subscribe('sql.active_record') do |*, payload|
+    def hold_delete_after_availability_check(started, &)
+      subscriber = lambda do |*, payload|
         next unless Thread.current[:delete_request] && payload[:sql].start_with?('SELECT 1 AS one FROM "loans"')
 
         started << :checked
         sleep 0.5
       end
-      yield
-    ensure
-      ActiveSupport::Notifications.unsubscribe(subscriber)
+      watching_sql(subscriber, &)
     end
 
     it 'never leaves a borrowed book deleted: the borrow request fails, no loan is lost' do
@@ -485,20 +477,10 @@ RSpec.describe 'Books', type: :request do
       responses = hold_delete_after_availability_check(checked) do
         deleting = Thread.new do
           Thread.current[:delete_request] = true
-          ActiveRecord::Base.connection_pool.with_connection do
-            Rack::MockRequest.new(Rails.application).delete("/books/#{book.id}")
-          end
+          app_request(:delete, "/books/#{book.id}")
         end
         expect(checked.pop(timeout: 5)).to eq(:checked)
-        borrowing = Thread.new do
-          ActiveRecord::Base.connection_pool.with_connection do
-            Rack::MockRequest.new(Rails.application).post(
-              "/books/#{book.id}/loans",
-              'CONTENT_TYPE' => 'application/json',
-              input: { card_number: reader.card_number }.to_json
-            )
-          end
-        end
+        borrowing = request_in_thread(:post, "/books/#{book.id}/loans", json: { card_number: reader.card_number })
         [ deleting.value, borrowing.value ]
       end
 

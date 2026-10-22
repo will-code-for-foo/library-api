@@ -126,43 +126,17 @@ RSpec.describe 'Returns', type: :request do
   end
 
   describe 'concurrent return requests for the same book' do
-    self.use_transactional_tests = false
+    include_context 'with concurrent requests'
 
     let!(:book) { create(:book) }
     let!(:loan) { create(:loan, book:) }
 
-    after do
-      Loan.delete_all
-      Reader.delete_all
-      Book.delete_all
-    end
-
-    # Makes every request start its lookup of the active loan at the same moment, so that only the row
-    # lock can stop the extra requests from closing the loan a second time.
-    def start_lookups_together(requests)
-      barrier = Concurrent::CyclicBarrier.new(requests)
-      subscriber = Class.new do
-        define_method(:start) do |_name, _id, payload|
-          barrier.wait(5) if payload[:sql].match?(/\ASELECT "loans"\.\* FROM "loans".*"returned_at" IS NULL/)
-        end
-
-        def finish(*); end
-      end.new
-      ActiveSupport::Notifications.subscribe('sql.active_record', subscriber)
-      yield
-    ensure
-      ActiveSupport::Notifications.unsubscribe(subscriber)
-    end
-
     it 'closes the loan once and answers the others with 409' do
-      responses = start_lookups_together(3) do
-        Array.new(3) do
-          Thread.new do
-            ActiveRecord::Base.connection_pool.with_connection do
-              Rack::MockRequest.new(Rails.application).post("/books/#{book.id}/returns")
-            end
-          end
-        end.map(&:value)
+      # Makes every request start its lookup of the active loan at the same moment, so that only the row
+      # lock can stop the extra requests from closing the loan a second time.
+      lookup = /\ASELECT "loans"\.\* FROM "loans".*"returned_at" IS NULL/
+      responses = line_up_at_sql(lookup, requests: 3, at: :start) do
+        Array.new(3) { request_in_thread(:post, "/books/#{book.id}/returns") }.map(&:value)
       end
 
       expect(responses.map(&:status)).to contain_exactly(201, 409, 409)

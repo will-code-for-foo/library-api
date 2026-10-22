@@ -40,6 +40,33 @@ RSpec.describe Book, type: :model do
     end
   end
 
+  describe '#borrowed?' do
+    let(:book) { create(:book) }
+
+    it 'is false when the book has no loans' do
+      expect(book).not_to be_borrowed
+    end
+
+    it 'is false when all loans were returned' do
+      create(:loan, :returned, book:)
+
+      expect(book).not_to be_borrowed
+    end
+
+    it 'is true while a loan is active' do
+      create(:loan, book:)
+
+      expect(book).to be_borrowed
+    end
+
+    it 'asks the database even when the active loan was loaded before the book was borrowed' do
+      expect(book.active_loan).to be_nil
+      create(:loan, book:)
+
+      expect(book).to be_borrowed
+    end
+  end
+
   describe '.with_current_loan' do
     it 'loads the active loans with their readers without a query per book' do
       create_list(:loan, 3)

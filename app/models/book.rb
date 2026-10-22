@@ -19,12 +19,18 @@ class Book < ApplicationRecord
   # Same for the borrowing history, so that showing a book takes a constant number of queries however many loans it has.
   scope :with_loan_history, -> { includes(loan_history: :reader) }
 
+  # Reads the preloaded active loan, which is what lets a list of books be shown without a query per book.
   def status
     active_loan ? BORROWED : AVAILABLE
   end
 
+  # Asks the database, so it can be trusted for a decision even when the active loan was loaded earlier.
+  def borrowed?
+    loans.active.exists?
+  end
+
   def borrow!(reader)
-    raise ConflictError, ALREADY_BORROWED if loans.active.exists?
+    raise ConflictError, ALREADY_BORROWED if borrowed?
 
     loans.create!(reader:)
   rescue ActiveRecord::RecordNotUnique
@@ -50,7 +56,7 @@ class Book < ApplicationRecord
     transaction do
       # The row lock makes a concurrent borrow wait, so no loan can appear between the check and the delete.
       lock!
-      raise ConflictError, BORROWED_CANNOT_BE_DELETED if loans.active.exists?
+      raise ConflictError, BORROWED_CANNOT_BE_DELETED if borrowed?
 
       destroy!
     end
