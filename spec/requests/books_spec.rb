@@ -1,6 +1,136 @@
 require 'rails_helper'
 
 RSpec.describe 'Books', type: :request do
+  describe 'GET /books' do
+    def count_queries(&)
+      count = 0
+      counter = ->(*, payload) { count += 1 unless payload[:name] == 'SCHEMA' || payload[:cached] }
+      ActiveSupport::Notifications.subscribed(counter, 'sql.active_record', &)
+      count
+    end
+
+    context 'when the library has no books' do
+      it 'responds with 200 and an empty array' do
+        get '/books'
+
+        expect(response).to have_http_status(:ok)
+        expect(response.parsed_body).to eq([])
+      end
+    end
+
+    context 'with an available book' do
+      it 'shows it as available without a current loan' do
+        book = create(:book, serial_number: '000123', title: 'Clean Code', author: 'Robert C. Martin')
+
+        get '/books'
+
+        expect(response).to have_http_status(:ok)
+        expect(response.parsed_body).to eq([
+          {
+            'id' => book.id,
+            'serial_number' => '000123',
+            'title' => 'Clean Code',
+            'author' => 'Robert C. Martin',
+            'status' => 'available',
+            'current_loan' => nil
+          }
+        ])
+      end
+
+      it 'does not show the history of returned loans' do
+        book = create(:book)
+        create(:loan, :returned, book:)
+
+        get '/books'
+
+        expect(response.parsed_body.first).to include('status' => 'available', 'current_loan' => nil)
+      end
+    end
+
+    context 'with a borrowed book' do
+      let(:reader) { create(:reader, card_number: '000456', name: 'Ann Kowalska', email: 'ann@example.com') }
+      let!(:book) { create(:book, serial_number: '000123', title: 'Clean Code', author: 'Robert C. Martin') }
+
+      it 'shows it as borrowed, by whom and since when' do
+        create(:loan, book:, reader:, borrowed_at: Time.zone.local(2026, 10, 21, 12, 30))
+
+        travel_to(Time.zone.local(2026, 10, 22, 8)) { get '/books' }
+
+        expect(response).to have_http_status(:ok)
+        expect(response.parsed_body).to eq([
+          {
+            'id' => book.id,
+            'serial_number' => '000123',
+            'title' => 'Clean Code',
+            'author' => 'Robert C. Martin',
+            'status' => 'borrowed',
+            'current_loan' => {
+              'borrowed_at' => '2026-10-21T12:30:00.000Z',
+              'due_on' => '2026-11-20',
+              'overdue' => false,
+              'reader' => { 'card_number' => '000456', 'name' => 'Ann Kowalska', 'email' => 'ann@example.com' }
+            }
+          }
+        ])
+      end
+
+      it 'shows only the active loan when the book was borrowed before' do
+        create(:loan, :returned, book:, borrowed_at: Time.zone.local(2026, 9, 1))
+        create(:loan, book:, reader:, borrowed_at: Time.zone.local(2026, 10, 21, 12, 30))
+
+        get '/books'
+
+        expect(response.parsed_body.first['current_loan']).to include('borrowed_at' => '2026-10-21T12:30:00.000Z')
+      end
+
+      it 'flags the loan as overdue once its due date has passed' do
+        create(:loan, book:, reader:, borrowed_at: Time.zone.local(2026, 10, 1, 12))
+
+        travel_to(Time.zone.local(2026, 11, 1)) { get '/books' }
+
+        expect(response.parsed_body.first.dig('current_loan', 'overdue')).to be(true)
+      end
+    end
+
+    context 'with several books' do
+      it 'orders them by serial number' do
+        create(:book, serial_number: '000300')
+        create(:book, serial_number: '000100')
+        create(:book, serial_number: '000200')
+        create(:book, serial_number: '100000')
+
+        get '/books'
+
+        expect(response.parsed_body.map { |book| book['serial_number'] }).to eq(%w[000100 000200 000300 100000])
+      end
+
+      it 'reports the status of each book separately' do
+        available = create(:book, serial_number: '000100')
+        borrowed = create(:book, serial_number: '000200')
+        create(:loan, book: borrowed)
+
+        get '/books'
+
+        expect(response.parsed_body.to_h { |book| [ book['id'], book['status'] ] })
+          .to eq(available.id => 'available', borrowed.id => 'borrowed')
+      end
+
+      it 'takes the same number of queries however many books there are' do
+        create(:loan)
+        get '/books'
+        queries_for_one_book = count_queries { get '/books' }
+
+        create_list(:loan, 5)
+        create_list(:loan, 3, :returned)
+        create_list(:book, 4)
+        queries_for_many_books = count_queries { get '/books' }
+
+        expect(response.parsed_body.size).to eq(13)
+        expect(queries_for_many_books).to eq(queries_for_one_book)
+      end
+    end
+  end
+
   describe 'POST /books' do
     let(:params) { { serial_number: '000123', title: 'The Pragmatic Programmer', author: 'Andrew Hunt' } }
 
@@ -18,7 +148,9 @@ RSpec.describe 'Books', type: :request do
           'id' => book.id,
           'serial_number' => '000123',
           'title' => 'The Pragmatic Programmer',
-          'author' => 'Andrew Hunt'
+          'author' => 'Andrew Hunt',
+          'status' => 'available',
+          'current_loan' => nil
         )
       end
 

@@ -1,4 +1,10 @@
 class BooksController < ApplicationController
+  def index
+    books = Book.with_current_loan.order(:serial_number)
+
+    render json: BookResource.new(books).serialize
+  end
+
   def create
     book = Book.new(book_params)
     book.save!

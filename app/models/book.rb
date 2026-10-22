@@ -4,10 +4,18 @@ class Book < ApplicationRecord
   private_constant :ALREADY_BORROWED, :NOT_BORROWED
 
   has_many :loans
+  has_one :active_loan, -> { active }, class_name: "Loan"
 
   validates :serial_number, presence: true, uniqueness: true
   validates :serial_number, format: { with: /\A\d{6}\z/, message: "must be exactly six digits" }, allow_blank: true
   validates :title, :author, presence: true
+
+  # Loads the active loan and its reader together with the books, so that listing books takes a constant number of queries.
+  scope :with_current_loan, -> { includes(active_loan: :reader) }
+
+  def status
+    active_loan ? "borrowed" : "available"
+  end
 
   def borrow!(reader)
     raise ConflictError, ALREADY_BORROWED if loans.active.exists?

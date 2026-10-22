@@ -20,6 +20,43 @@ RSpec.describe Book, type: :model do
     expect(duplicate.errors[:serial_number]).to eq([ 'has already been taken' ])
   end
 
+  describe '#status' do
+    let(:book) { create(:book) }
+
+    it 'is available when the book has no loans' do
+      expect(book.status).to eq('available')
+    end
+
+    it 'is available when all loans were returned' do
+      create(:loan, :returned, book:)
+
+      expect(book.status).to eq('available')
+    end
+
+    it 'is borrowed while a loan is active' do
+      create(:loan, book:)
+
+      expect(book.status).to eq('borrowed')
+    end
+  end
+
+  describe '.with_current_loan' do
+    it 'loads the active loans with their readers without a query per book' do
+      create_list(:loan, 3)
+      create(:loan, :returned)
+
+      books = described_class.with_current_loan.to_a
+      queries = 0
+      counter = ->(*, payload) { queries += 1 unless payload[:name] == 'SCHEMA' }
+      ActiveSupport::Notifications.subscribed(counter, 'sql.active_record') do
+        books.each { |book| book.active_loan&.reader&.name }
+      end
+
+      expect(queries).to eq(0)
+      expect(books.count(&:active_loan)).to eq(3)
+    end
+  end
+
   describe '#borrow!' do
     let(:book) { create(:book) }
     let(:reader) { create(:reader) }

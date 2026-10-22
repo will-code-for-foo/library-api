@@ -10,6 +10,10 @@ class Loan < ApplicationRecord
 
   scope :active, -> { where(returned_at: nil) }
 
+  def overdue?
+    returned_at.nil? && due_on < Date.current
+  end
+
   private
 
   def set_dates

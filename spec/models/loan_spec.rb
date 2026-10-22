@@ -28,6 +28,28 @@ RSpec.describe Loan, type: :model do
     end
   end
 
+  describe '#overdue?' do
+    let(:loan) { create(:loan, borrowed_at: Time.zone.local(2026, 10, 1, 12)) }
+
+    it 'is false before the due date' do
+      travel_to(Time.zone.local(2026, 10, 30)) { expect(loan).not_to be_overdue }
+    end
+
+    it 'is false on the due date' do
+      travel_to(Time.zone.local(2026, 10, 31, 23, 59)) { expect(loan).not_to be_overdue }
+    end
+
+    it 'is true after the due date while the book is not returned' do
+      travel_to(Time.zone.local(2026, 11, 1)) { expect(loan).to be_overdue }
+    end
+
+    it 'is false for a loan that was returned late' do
+      loan.update!(returned_at: Time.zone.local(2026, 11, 5))
+
+      travel_to(Time.zone.local(2026, 12, 1)) { expect(loan).not_to be_overdue }
+    end
+  end
+
   describe '.active' do
     it 'returns only the loans that were not returned' do
       active = create(:loan)
