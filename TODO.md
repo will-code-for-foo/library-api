@@ -136,28 +136,28 @@ Books are addressed by their `id` in paths. Readers are identified by library ca
 
 ## Task 4: Delivery
 
-- [ ] **13. Seed data**
+- [x] **13. Seed data**
   - Context: a reviewer should be able to try every endpoint right after `docker compose up`.
   - Acceptance criteria:
-    - [ ] Seeds create a handful of books and readers, with one book borrowed
-    - [ ] Seeds can run repeatedly without creating duplicates
-    - [ ] On a clean machine `docker compose up` loads the seed data
+    - [x] Seeds create a handful of books and readers, with one book borrowed
+    - [x] Seeds can run repeatedly without creating duplicates
+    - [x] On a clean machine `docker compose up` loads the seed data
 
-- [ ] **14. README**
+- [x] **14. README**
   - Context: the README replaces the Rails default and tells a reviewer how to run the app and why it is built this way.
   - Acceptance criteria:
-    - [ ] How to start the app with `docker compose up` and where it listens
-    - [ ] A `curl` example for each endpoint in the overview
-    - [ ] How to run the specs
-    - [ ] Key design decisions, each with its reason
-    - [ ] Additional logic beyond the staff operations in the overview, each with a one-line reason: reader registration, overdue flag, protection against double borrowing, reminder idempotency, email normalization
-    - [ ] Ideas for improvement
-    - [ ] Text only describes what the app does and uses
+    - [x] How to start the app with `docker compose up` and where it listens
+    - [x] A `curl` example for each endpoint in the overview
+    - [x] How to run the specs
+    - [x] Key design decisions, each with its reason
+    - [x] Additional logic beyond the staff operations in the overview, each with a one-line reason: reader registration, overdue flag, protection against double borrowing, reminder idempotency, email normalization
+    - [x] Ideas for improvement
+    - [x] Text only describes what the app does and uses
 
-- [ ] **15. Final verification**
+- [x] **15. Final verification**
   - Context: the delivered repository must work on a clean machine.
   - Acceptance criteria:
-    - [ ] `docker compose down -v && docker compose up --build` starts `db`, `web` and `worker` from scratch and `GET /up` returns 200
-    - [ ] The flow create book → register reader → borrow → list → show → return → delete works through `curl` against the running containers
-    - [ ] A loan back-dated by 27 days triggers a 3-days-before email visible in the `worker` logs
-    - [ ] `bin/ci` and `bundle exec rspec` pass
+    - [x] `docker compose down -v && docker compose up --build` starts `db`, `web` and `worker` from scratch and `GET /up` returns 200
+    - [x] The flow create book → register reader → borrow → list → show → return → delete works through `curl` against the running containers
+    - [x] A loan back-dated by 27 days triggers a 3-days-before email visible in the `worker` logs
+    - [x] `bin/ci` and `bundle exec rspec` pass
