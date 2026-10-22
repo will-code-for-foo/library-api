@@ -105,13 +105,13 @@ Books are addressed by their `id` in paths. Readers are identified by library ca
     - [x] An unknown book id returns 404
     - [x] The number of SQL queries does not grow with the number of loans
 
-- [ ] **10. Delete a book** — `DELETE /books/:id`
+- [x] **10. Delete a book** — `DELETE /books/:id`
   - Context: staff remove books that left the library. A book that is currently borrowed must not disappear from under its reader.
   - Acceptance criteria:
-    - [ ] Deleting an available book returns 204 and the book no longer appears in `GET /books`
-    - [ ] The loan history of a deleted book is deleted with it
-    - [ ] Deleting a borrowed book returns 409 `conflict` and the book and its loan are unchanged
-    - [ ] An unknown book id returns 404
+    - [x] Deleting an available book returns 204 and the book no longer appears in `GET /books`
+    - [x] The loan history of a deleted book is deleted with it
+    - [x] Deleting a borrowed book returns 409 `conflict` and the book and its loan are unchanged
+    - [x] An unknown book id returns 404
 
 ## Task 3: Email reminders
 

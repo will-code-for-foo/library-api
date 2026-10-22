@@ -366,4 +366,127 @@ RSpec.describe 'Books', type: :request do
       end
     end
   end
+
+  describe 'DELETE /books/:id' do
+    let!(:book) { create(:book, serial_number: '000123') }
+
+    def error
+      response.parsed_body['error']
+    end
+
+    context 'when the book is available' do
+      it 'responds with 204 and no body, and the book is gone from the list' do
+        delete "/books/#{book.id}"
+
+        expect(response).to have_http_status(:no_content)
+        expect(response.body).to be_empty
+
+        get '/books'
+        expect(response.parsed_body).to eq([])
+        get "/books/#{book.id}"
+        expect(response).to have_http_status(:not_found)
+      end
+
+      it 'deletes the loan history of the book with it, but not the loans of other books' do
+        create(:loan, :returned, book:, borrowed_at: Time.zone.local(2026, 8, 1))
+        create(:loan, :returned, book:, borrowed_at: Time.zone.local(2026, 9, 1))
+        other_book = create(:book)
+        other_loan = create(:loan, book: other_book)
+
+        expect { delete "/books/#{book.id}" }.to change(Loan, :count).by(-2)
+
+        expect(response).to have_http_status(:no_content)
+        expect(Loan.all).to contain_exactly(other_loan)
+        expect(Book.all).to contain_exactly(other_book)
+      end
+
+      it 'deletes a book that was returned after being borrowed' do
+        post "/books/#{book.id}/loans", params: { card_number: create(:reader).card_number }, as: :json
+        post "/books/#{book.id}/returns", as: :json
+
+        delete "/books/#{book.id}"
+
+        expect(response).to have_http_status(:no_content)
+        expect(Book.exists?(book.id)).to be(false)
+        expect(Loan.count).to eq(0)
+      end
+    end
+
+    context 'when the book is borrowed' do
+      let!(:loan) { create(:loan, book:) }
+
+      it 'responds with 409 conflict and leaves the book and its loan unchanged' do
+        create(:loan, :returned, book:, borrowed_at: 3.days.ago)
+
+        expect { delete "/books/#{book.id}" }.not_to change { [ Book.count, Loan.count ] }
+
+        expect(response).to have_http_status(:conflict)
+        expect(error).to include('code' => 'conflict', 'message' => 'Borrowed book cannot be deleted')
+        expect(book.reload).to have_attributes(serial_number: '000123')
+        expect(loan.reload.returned_at).to be_nil
+      end
+
+      it 'can be deleted once it is returned' do
+        delete "/books/#{book.id}"
+        expect(response).to have_http_status(:conflict)
+
+        post "/books/#{book.id}/returns", as: :json
+        delete "/books/#{book.id}"
+
+        expect(response).to have_http_status(:no_content)
+      end
+    end
+
+    context 'when the book does not exist' do
+      it 'responds with 404' do
+        delete '/books/0'
+
+        expect(response).to have_http_status(:not_found)
+        expect(error).to include('code' => 'not_found', 'message' => 'Book not found')
+      end
+
+      it 'responds with 404 and keeps the book when characters follow the id of an existing book' do
+        delete "/books/#{book.id}abc"
+
+        expect(response).to have_http_status(:not_found)
+        expect(Book.exists?(book.id)).to be(true)
+      end
+    end
+  end
+
+  describe 'DELETE /books/:id racing with a borrow request' do
+    include_context 'with concurrent requests'
+
+    let!(:book) { create(:book) }
+    let!(:reader) { create(:reader) }
+
+    # Holds the delete request for a moment right after it checked that the book is not borrowed, which gives
+    # the borrow request time to try to create a loan before the book is deleted.
+    def hold_delete_after_availability_check(started, &)
+      subscriber = lambda do |*, payload|
+        next unless Thread.current[:delete_request] && payload[:sql].start_with?('SELECT 1 AS one FROM "loans"')
+
+        started << :checked
+        sleep 0.5
+      end
+      watching_sql(subscriber, &)
+    end
+
+    it 'never leaves a borrowed book deleted: the borrow request fails, no loan is lost' do
+      checked = Queue.new
+      responses = hold_delete_after_availability_check(checked) do
+        deleting = Thread.new do
+          Thread.current[:delete_request] = true
+          app_request(:delete, "/books/#{book.id}")
+        end
+        expect(checked.pop(timeout: 5)).to eq(:checked)
+        borrowing = request_in_thread(:post, "/books/#{book.id}/loans", json: { card_number: reader.card_number })
+        [ deleting.value, borrowing.value ]
+      end
+
+      expect(responses.map(&:status)).to eq([ 204, 404 ])
+      expect(Book.count).to eq(0)
+      expect(Loan.count).to eq(0)
+    end
+  end
 end

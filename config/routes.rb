@@ -6,7 +6,7 @@ Rails.application.routes.draw do
   get "up" => "rails/health#show", as: :rails_health_check
 
   # Paths take no format suffix and book ids are only digits, so "/books/1abc" and "/books/1.5" are not routed to book 1.
-  resources :books, only: %i[index show create], constraints: { id: /\d+/ }, format: false do
+  resources :books, only: %i[index show create destroy], constraints: { id: /\d+/ }, format: false do
     resources :loans, only: :create
     resources :returns, only: :create
   end

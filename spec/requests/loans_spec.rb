@@ -113,41 +113,17 @@ RSpec.describe 'Loans', type: :request do
   end
 
   describe 'concurrent borrow requests for the same book' do
-    self.use_transactional_tests = false
+    include_context 'with concurrent requests'
 
     let!(:book) { create(:book) }
     let!(:readers) { create_list(:reader, 3) }
 
-    after do
-      Loan.delete_all
-      Reader.delete_all
-      Book.delete_all
-    end
-
-    # Holds every request after its "is the book borrowed?" check until all of them have passed it,
-    # so that all of them try to insert a loan and only the unique index can stop the extra ones.
-    def pause_after_availability_check(requests)
-      barrier = Concurrent::CyclicBarrier.new(requests)
-      subscriber = ActiveSupport::Notifications.subscribe('sql.active_record') do |*, payload|
-        barrier.wait(5) if payload[:sql].start_with?('SELECT 1 AS one FROM "loans"')
-      end
-      yield
-    ensure
-      ActiveSupport::Notifications.unsubscribe(subscriber)
-    end
-
     it 'creates exactly one loan and answers the others with 409' do
-      responses = pause_after_availability_check(readers.size) do
+      # Holds every request after its "is the book borrowed?" check until all of them have passed it,
+      # so that all of them try to insert a loan and only the unique index can stop the extra ones.
+      responses = line_up_at_sql(/\ASELECT 1 AS one FROM "loans"/, requests: readers.size, at: :finish) do
         readers.map do |reader|
-          Thread.new do
-            ActiveRecord::Base.connection_pool.with_connection do
-              Rack::MockRequest.new(Rails.application).post(
-                "/books/#{book.id}/loans",
-                'CONTENT_TYPE' => 'application/json',
-                input: { card_number: reader.card_number }.to_json
-              )
-            end
-          end
+          request_in_thread(:post, "/books/#{book.id}/loans", json: { card_number: reader.card_number })
         end.map(&:value)
       end
 
