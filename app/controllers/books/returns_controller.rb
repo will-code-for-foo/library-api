@@ -1,4 +1,4 @@
-class ReturnsController < ApplicationController
+class Books::ReturnsController < ApplicationController
   def create
     book = Book.find(params[:book_id])
 

@@ -7,8 +7,12 @@ Rails.application.routes.draw do
 
   # Paths take no format suffix and book ids are only digits, so "/books/1abc" and "/books/1.5" are not routed to book 1.
   resources :books, only: %i[index show create destroy], constraints: { id: /\d+/ }, format: false do
-    resources :loans, only: :create
-    resources :returns, only: :create
+    # Borrowing and returning have no standard action on a book, so each is its own resource in the Books namespace
+    # (Books::LoansController, Books::ReturnsController).
+    scope module: :books do
+      resources :loans, only: :create
+      resources :returns, only: :create
+    end
   end
   resources :readers, only: :create, format: false
 

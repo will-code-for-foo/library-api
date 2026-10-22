@@ -1,6 +1,6 @@
 require 'rails_helper'
 
-RSpec.describe 'Returns', type: :request do
+RSpec.describe 'Books::Returns', type: :request do
   describe 'POST /books/:book_id/returns' do
     let(:book) { create(:book, serial_number: '000123') }
     let(:reader) { create(:reader, card_number: '000456', name: 'Ann Kowalska', email: 'ann@example.com') }
