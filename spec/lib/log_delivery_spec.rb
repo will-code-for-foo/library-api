@@ -27,7 +27,12 @@ RSpec.describe LogDelivery do
     expect(ActionMailer::Base.delivery_methods[:log]).to eq(described_class)
   end
 
-  it "writes from, to, subject and body of the delivered email to the log at INFO level" do
+  it "writes from, to, subject and body of the delivered email to the log at INFO level and sends it nowhere" do
+    expect(Mail::SMTP).not_to receive(:new)
+    expect(Mail::Sendmail).not_to receive(:new)
+    expect(TCPSocket).not_to receive(:open)
+    expect(Socket).not_to receive(:tcp)
+
     LoanMailer.due_date_reminder(loan).deliver_now
 
     expect(log.string).to start_with("INFO: Email not sent, logged instead")
@@ -37,14 +42,6 @@ RSpec.describe LogDelivery do
       'Subject: Reminder: "Clean Code" is due today',
       '"Clean Code" by'
     )
-  end
-
-  it "sends nothing and keeps no copy of the email" do
-    expect(Mail::SMTP).not_to receive(:new)
-    expect(Mail::Sendmail).not_to receive(:new)
-
-    LoanMailer.due_date_reminder(loan).deliver_now
-
     expect(ActionMailer::Base.deliveries).to be_empty
   end
 

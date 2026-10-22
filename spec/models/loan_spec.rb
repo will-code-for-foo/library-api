@@ -106,6 +106,14 @@ RSpec.describe Loan, type: :model do
         expect(stale.mark_reminder_sent(:three_days_reminder_sent_at)).to be(false)
       end
 
+      it 'is false, and marks nothing, for a loan that was returned after it was loaded' do
+        stale = described_class.find(loan.id)
+        loan.update!(returned_at: Time.current)
+
+        expect(stale.mark_reminder_sent(:three_days_reminder_sent_at)).to be(false)
+        expect(described_class.find(loan.id).three_days_reminder_sent_at).to be_nil
+      end
+
       it 'marks the two reminders independently' do
         loan.mark_reminder_sent(:three_days_reminder_sent_at)
 

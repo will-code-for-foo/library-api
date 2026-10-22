@@ -8,7 +8,7 @@ RSpec.describe SendLoanRemindersJob, type: :job do
   let!(:loan) { create(:loan, book: create(:book, title: 'Clean Code'), reader:, borrowed_at:) }
 
   def run_on(date)
-    described_class.perform_now(date)
+    travel_to(date.in_time_zone.change(hour: 8)) { described_class.perform_now }
   end
 
   def sent
@@ -45,12 +45,6 @@ RSpec.describe SendLoanRemindersJob, type: :job do
       three_days_before => [ 'Reminder: "Clean Code" is due in 3 days (2026-10-31)' ],
       due_date => [ 'Reminder: "Clean Code" is due today (2026-10-31)' ]
     )
-  end
-
-  it 'uses the current date when it is not given one' do
-    travel_to(Time.zone.local(2026, 10, 28, 8)) { described_class.perform_now }
-
-    expect(sent.size).to eq(1)
   end
 
   it 'sends each reminder at most once, however often it runs' do

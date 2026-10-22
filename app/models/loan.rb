@@ -20,9 +20,10 @@ class Loan < ApplicationRecord
   end
 
   # Marks a reminder (`three_days_reminder_sent_at` or `due_date_reminder_sent_at`) as sent. It is a single conditional
-  # update, so only one of any number of repeated or concurrent callers gets `true` and may send the email.
+  # update, so only one of any number of repeated or concurrent callers gets `true` and may send the email, and only
+  # while the book is still borrowed.
   def mark_reminder_sent(column)
-    self.class.where(id:, column => nil).update_all(column => Time.current) == 1
+    self.class.where(id:, returned_at: nil, column => nil).update_all(column => Time.current) == 1
   end
 
   private

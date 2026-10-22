@@ -3,7 +3,9 @@
 class SendLoanRemindersJob < ApplicationJob
   queue_as :default
 
-  def perform(today = Date.current)
+  def perform
+    today = Date.current
+
     Loan.awaiting_three_days_reminder(today).includes(:book, :reader).find_each do |loan|
       LoanMailer.three_days_reminder(loan).deliver_now if loan.mark_reminder_sent(:three_days_reminder_sent_at)
     end
