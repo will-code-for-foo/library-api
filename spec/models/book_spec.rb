@@ -57,6 +57,32 @@ RSpec.describe Book, type: :model do
     end
   end
 
+  describe '#loan_history' do
+    let(:book) { create(:book) }
+
+    it 'lists the loans of the book from the most recently borrowed' do
+      newest = create(:loan, book:, borrowed_at: Time.zone.local(2026, 10, 1))
+      oldest = create(:loan, :returned, book:, borrowed_at: Time.zone.local(2026, 8, 1))
+      middle = create(:loan, :returned, book:, borrowed_at: Time.zone.local(2026, 9, 1))
+
+      expect(book.loan_history).to eq([ newest, middle, oldest ])
+    end
+
+    it 'puts the loan created later first when two loans were borrowed at the same moment' do
+      moment = Time.zone.local(2026, 9, 1)
+      first = create(:loan, :returned, book:, borrowed_at: moment)
+      second = create(:loan, :returned, book:, borrowed_at: moment)
+
+      expect(book.loan_history).to eq([ second, first ])
+    end
+
+    it 'does not include the loans of other books' do
+      create(:loan)
+
+      expect(book.loan_history).to be_empty
+    end
+  end
+
   describe '#borrow!' do
     let(:book) { create(:book) }
     let(:reader) { create(:reader) }

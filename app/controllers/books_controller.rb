@@ -5,6 +5,12 @@ class BooksController < ApplicationController
     render json: BookResource.new(books).serialize
   end
 
+  def show
+    book = Book.with_current_loan.with_loan_history.find(params[:id])
+
+    render json: BookDetailResource.new(book).serialize
+  end
+
   def create
     book = Book.new(book_params)
     book.save!

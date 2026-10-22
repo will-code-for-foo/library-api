@@ -95,15 +95,15 @@ Books are addressed by their `id` in paths. Readers are identified by library ca
     - [x] The number of SQL queries does not grow with the number of books
     - [x] The response of `POST /books` includes the new fields as well
 
-- [ ] **9. Show a book with its borrowing history** — `GET /books/:id`
+- [x] **9. Show a book with its borrowing history** — `GET /books/:id`
   - Context: staff look up one book together with every time it was borrowed and by whom.
   - Acceptance criteria:
-    - [ ] Returns 200 with the book fields of item 8 plus `loans`
-    - [ ] `loans` lists every loan, newest first, as `{ borrowed_at, due_on, returned_at, reader: { card_number, name, email } }`
-    - [ ] The active loan is included with `returned_at: null`
-    - [ ] A book that was never borrowed has `loans: []`
-    - [ ] An unknown book id returns 404
-    - [ ] The number of SQL queries does not grow with the number of loans
+    - [x] Returns 200 with the book fields of item 8 plus `loans`
+    - [x] `loans` lists every loan, newest first, as `{ borrowed_at, due_on, returned_at, reader: { card_number, name, email } }`
+    - [x] The active loan is included with `returned_at: null`
+    - [x] A book that was never borrowed has `loans: []`
+    - [x] An unknown book id returns 404
+    - [x] The number of SQL queries does not grow with the number of loans
 
 - [ ] **10. Delete a book** — `DELETE /books/:id`
   - Context: staff remove books that left the library. A book that is currently borrowed must not disappear from under its reader.

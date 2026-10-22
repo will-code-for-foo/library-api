@@ -80,6 +80,15 @@ RSpec.describe 'Loans', type: :request do
         expect(response).to have_http_status(:not_found)
         expect(error).to include('code' => 'not_found', 'message' => 'Book not found')
       end
+
+      %w[abc .5].each do |suffix|
+        it "responds with 404 and creates no loan when #{suffix.inspect} follows the id of an existing book" do
+          expect { borrow(book_id: "#{book.id}#{suffix}") }.not_to change(Loan, :count)
+
+          expect(response).to have_http_status(:not_found)
+          expect(error['code']).to eq('not_found')
+        end
+      end
     end
 
     context 'when the card number is unknown' do

@@ -5,11 +5,12 @@ Rails.application.routes.draw do
   # Can be used by load balancers and uptime monitors to verify that the app is live.
   get "up" => "rails/health#show", as: :rails_health_check
 
-  resources :books, only: %i[index create] do
+  # Paths take no format suffix and book ids are only digits, so "/books/1abc" and "/books/1.5" are not routed to book 1.
+  resources :books, only: %i[index show create], constraints: { id: /\d+/ }, format: false do
     resources :loans, only: :create
     resources :returns, only: :create
   end
-  resources :readers, only: :create
+  resources :readers, only: :create, format: false
 
   # Defines the root path route ("/")
   # root "posts#index"
