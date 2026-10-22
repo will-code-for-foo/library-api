@@ -50,6 +50,70 @@ RSpec.describe Loan, type: :model do
     end
   end
 
+  describe 'reminders' do
+    let(:borrowed_at) { Time.zone.local(2026, 10, 1, 12) } # due on 2026-10-31
+    let(:loan) { create(:loan, borrowed_at:) }
+
+    describe '.awaiting_three_days_reminder' do
+      it 'finds the active loans due in 3 days that were not reminded yet' do
+        loan
+        create(:loan, borrowed_at: borrowed_at + 1.day)
+        create(:loan, :returned, borrowed_at:)
+        create(:loan, borrowed_at:, three_days_reminder_sent_at: Time.current)
+
+        expect(described_class.awaiting_three_days_reminder(Date.new(2026, 10, 28))).to contain_exactly(loan)
+      end
+
+      it 'finds nothing on any other day' do
+        loan
+
+        other_days = (Date.new(2026, 10, 1)..Date.new(2026, 11, 30)).to_a - [ Date.new(2026, 10, 28) ]
+
+        expect(other_days.flat_map { |day| described_class.awaiting_three_days_reminder(day).to_a }).to be_empty
+      end
+    end
+
+    describe '.awaiting_due_date_reminder' do
+      it 'finds the active loans due that day that were not reminded yet' do
+        loan
+        create(:loan, borrowed_at: borrowed_at + 1.day)
+        create(:loan, :returned, borrowed_at:)
+        create(:loan, borrowed_at:, due_date_reminder_sent_at: Time.current)
+
+        expect(described_class.awaiting_due_date_reminder(Date.new(2026, 10, 31))).to contain_exactly(loan)
+      end
+
+      it 'finds nothing on any other day' do
+        loan
+
+        other_days = (Date.new(2026, 10, 1)..Date.new(2026, 11, 30)).to_a - [ Date.new(2026, 10, 31) ]
+
+        expect(other_days.flat_map { |day| described_class.awaiting_due_date_reminder(day).to_a }).to be_empty
+      end
+    end
+
+    describe '#mark_reminder_sent' do
+      it 'is true only for the first caller' do
+        expect(loan.mark_reminder_sent(:three_days_reminder_sent_at)).to be(true)
+        expect(loan.mark_reminder_sent(:three_days_reminder_sent_at)).to be(false)
+        expect(described_class.find(loan.id).three_days_reminder_sent_at).to be_present
+      end
+
+      it 'is false for a copy of the loan loaded before the reminder was sent' do
+        stale = described_class.find(loan.id)
+        loan.mark_reminder_sent(:three_days_reminder_sent_at)
+
+        expect(stale.mark_reminder_sent(:three_days_reminder_sent_at)).to be(false)
+      end
+
+      it 'marks the two reminders independently' do
+        loan.mark_reminder_sent(:three_days_reminder_sent_at)
+
+        expect(loan.mark_reminder_sent(:due_date_reminder_sent_at)).to be(true)
+      end
+    end
+  end
+
   describe '.active' do
     it 'returns only the loans that were not returned' do
       active = create(:loan)
