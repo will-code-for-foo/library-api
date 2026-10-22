@@ -83,17 +83,17 @@ Books are addressed by their `id` in paths. Readers are identified by library ca
     - [x] Returning a book that is not borrowed returns 409 `conflict`, including a second return of the same loan
     - [x] An unknown book returns 404
 
-- [ ] **8. List all books with availability** — `GET /books`
+- [x] **8. List all books with availability** — `GET /books`
   - Context: staff see at a glance which books are available and which are borrowed, by whom and since when.
   - Acceptance criteria:
-    - [ ] Returns 200 with an array of `{ id, serial_number, title, author, status, current_loan }`
-    - [ ] `status` is `"available"` or `"borrowed"`
-    - [ ] For an available book `current_loan` is `null`; for a borrowed book it is `{ borrowed_at, due_on, overdue, reader: { card_number, name, email } }`
-    - [ ] `overdue` is `true` only when the loan is active and `due_on` is before today (additional logic: it lets staff spot late books)
-    - [ ] Books are ordered by `serial_number`
-    - [ ] An empty library returns `[]`
-    - [ ] The number of SQL queries does not grow with the number of books
-    - [ ] The response of `POST /books` includes the new fields as well
+    - [x] Returns 200 with an array of `{ id, serial_number, title, author, status, current_loan }`
+    - [x] `status` is `"available"` or `"borrowed"`
+    - [x] For an available book `current_loan` is `null`; for a borrowed book it is `{ borrowed_at, due_on, overdue, reader: { card_number, name, email } }`
+    - [x] `overdue` is `true` only when the loan is active and `due_on` is before today (additional logic: it lets staff spot late books)
+    - [x] Books are ordered by `serial_number`
+    - [x] An empty library returns `[]`
+    - [x] The number of SQL queries does not grow with the number of books
+    - [x] The response of `POST /books` includes the new fields as well
 
 - [ ] **9. Show a book with its borrowing history** — `GET /books/:id`
   - Context: staff look up one book together with every time it was borrowed and by whom.
