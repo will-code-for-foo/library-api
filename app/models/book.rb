@@ -1,7 +1,9 @@
 class Book < ApplicationRecord
   ALREADY_BORROWED = "Book is already borrowed".freeze
   NOT_BORROWED = "Book is not borrowed".freeze
-  private_constant :ALREADY_BORROWED, :NOT_BORROWED
+  AVAILABLE = "available".freeze
+  BORROWED = "borrowed".freeze
+  private_constant :ALREADY_BORROWED, :NOT_BORROWED, :AVAILABLE, :BORROWED
 
   has_many :loans
   has_one :active_loan, -> { active }, class_name: "Loan"
@@ -14,7 +16,7 @@ class Book < ApplicationRecord
   scope :with_current_loan, -> { includes(active_loan: :reader) }
 
   def status
-    active_loan ? "borrowed" : "available"
+    active_loan ? BORROWED : AVAILABLE
   end
 
   def borrow!(reader)
