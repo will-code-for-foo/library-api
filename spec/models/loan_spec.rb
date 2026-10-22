@@ -50,6 +50,90 @@ RSpec.describe Loan, type: :model do
     end
   end
 
+describe 'reminders' do
+  let(:borrowed_at) { Time.zone.local(2026, 10, 1, 12) } # due on 2026-10-31
+  let(:loan) { create(:loan, borrowed_at:) }
+
+  it 'knows when each reminder goes out and where it records that it was sent' do
+    expect(described_class::REMINDERS).to eq(
+      three_days: { days_before_due: 3, sent_at: :three_days_reminder_sent_at },
+      due_date: { days_before_due: 0, sent_at: :due_date_reminder_sent_at }
+    )
+  end
+
+  { three_days: Date.new(2026, 10, 28), due_date: Date.new(2026, 10, 31) }.each do |kind, day|
+    describe ".awaiting_reminder(:#{kind}, day)" do
+      let(:sent_at) { described_class::REMINDERS.fetch(kind)[:sent_at] }
+
+      it 'finds the active loans due on the right day that were not reminded yet' do
+        loan
+        create(:loan, borrowed_at: borrowed_at + 1.day)
+        create(:loan, :returned, borrowed_at:)
+        create(:loan, borrowed_at:, sent_at => Time.current)
+
+        expect(described_class.awaiting_reminder(kind, day)).to contain_exactly(loan)
+      end
+
+      it 'finds nothing on any other day' do
+        loan
+
+        other_days = (Date.new(2026, 10, 1)..Date.new(2026, 11, 30)).to_a - [ day ]
+
+        expect(other_days.flat_map { |other_day| described_class.awaiting_reminder(kind, other_day).to_a }).to be_empty
+      end
+    end
+  end
+
+  it 'does not know a reminder that is not in REMINDERS' do
+    expect { described_class.awaiting_reminder(:next_week, Date.new(2026, 10, 28)) }.to raise_error(KeyError)
+    expect { loan.claim_reminder(:next_week) }.to raise_error(KeyError)
+    expect { loan.release_reminder(:next_week) }.to raise_error(KeyError)
+  end
+
+  describe '#claim_reminder' do
+    it 'is true only for the first caller' do
+      expect(loan.claim_reminder(:three_days)).to be(true)
+      expect(loan.claim_reminder(:three_days)).to be(false)
+      expect(described_class.find(loan.id).three_days_reminder_sent_at).to be_present
+    end
+
+    it 'is false for a copy of the loan loaded before the reminder was claimed' do
+      stale = described_class.find(loan.id)
+      loan.claim_reminder(:three_days)
+
+      expect(stale.claim_reminder(:three_days)).to be(false)
+    end
+
+    it 'is false, and claims nothing, for a loan that was returned after it was loaded' do
+      stale = described_class.find(loan.id)
+      loan.update!(returned_at: Time.current)
+
+      expect(stale.claim_reminder(:three_days)).to be(false)
+      expect(described_class.find(loan.id).three_days_reminder_sent_at).to be_nil
+    end
+
+    it 'claims the reminders independently' do
+      loan.claim_reminder(:three_days)
+
+      expect(loan.claim_reminder(:due_date)).to be(true)
+    end
+  end
+
+  describe '#release_reminder' do
+    it 'makes a claimed reminder claimable again, leaving the other reminder alone' do
+      loan.claim_reminder(:three_days)
+      loan.claim_reminder(:due_date)
+
+      loan.release_reminder(:three_days)
+
+      reloaded = described_class.find(loan.id)
+      expect(reloaded.three_days_reminder_sent_at).to be_nil
+      expect(reloaded.due_date_reminder_sent_at).to be_present
+      expect(loan.claim_reminder(:three_days)).to be(true)
+    end
+  end
+end
+
   describe '.active' do
     it 'returns only the loans that were not returned' do
       active = create(:loan)

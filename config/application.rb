@@ -41,6 +41,9 @@ module LibraryApi
     # Skip views, helpers and assets when generating a new resource.
     config.api_only = true
 
+    # Emails are never really sent: delivering one writes it to the log (see LogDelivery).
+    config.action_mailer.delivery_method = :log
+
     # Render errors raised outside the controllers (unknown routes, malformed JSON, crashes) as JSON too.
     config.exceptions_app = ->(env) { ErrorsController.action(:show).call(env) }
   end

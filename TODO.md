@@ -115,24 +115,24 @@ Books are addressed by their `id` in paths. Readers are identified by library ca
 
 ## Task 3: Email reminders
 
-- [ ] **11. Reminder emails**
+- [x] **11. Reminder emails**
   - Context: readers get two emails about a loan, 3 days before the due date and on the due date. Emails are never really sent: the payload is logged and previews are available.
   - Acceptance criteria:
-    - [ ] The 3-days-before email is addressed to the reader, its subject names the book title and due date, and its body says the book is due in 3 days and includes reader name, title, author, serial number and due date
-    - [ ] The due-date email has the same fields and says the book is due today
-    - [ ] Both emails have a library sender address
-    - [ ] Previews of both emails are viewable in development
-    - [ ] When an email is delivered, nothing leaves the app and the payload (from, to, subject, body) is written to the log at INFO level
+    - [x] The 3-days-before email is addressed to the reader, its subject names the book title and due date, and its body says the book is due in 3 days and includes reader name, title, author, serial number and due date
+    - [x] The due-date email has the same fields and says the book is due today
+    - [x] Both emails have a library sender address
+    - [x] Previews of both emails are viewable in development
+    - [x] When an email is delivered, nothing leaves the app and the payload (from, to, subject, body) is written to the log at INFO level
 
-- [ ] **12. Reminder scheduling**
+- [x] **12. Reminder scheduling**
   - Context: once a day the app finds the loans that need a reminder and emails their readers. Running the job twice on the same day must not send duplicates.
   - Acceptance criteria:
-    - [ ] A job runs automatically once a day (production and development) as a Solid Queue recurring task
-    - [ ] For a loan borrowed on day D, the reader gets one 3-days-before email on D+27 and one due-date email on D+30, and nothing on other days
-    - [ ] Each reminder is sent at most once per loan, even when the job runs several times a day
-    - [ ] A loan returned before the reminder date gets no email
-    - [ ] A reader with two loans due on the same day gets two emails
-    - [ ] After `docker compose up` the `worker` service runs the recurring task and the email payloads show up in `docker compose logs worker`
+    - [x] A job runs automatically once a day (production and development) as a Solid Queue recurring task
+    - [x] For a loan borrowed on day D, the reader gets one 3-days-before email on D+27 and one due-date email on D+30, and nothing on other days
+    - [x] Each reminder is sent at most once per loan, even when the job runs several times a day
+    - [x] A loan returned before the reminder date gets no email
+    - [x] A reader with two loans due on the same day gets two emails
+    - [x] After `docker compose up` the `worker` service runs the recurring task and the email payloads show up in `docker compose logs worker`
 
 ## Task 4: Delivery
 
