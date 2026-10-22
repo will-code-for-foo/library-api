@@ -33,7 +33,7 @@ RSpec.describe LogDelivery do
     expect(TCPSocket).not_to receive(:open)
     expect(Socket).not_to receive(:tcp)
 
-    LoanMailer.due_date_reminder(loan).deliver_now
+    LoanMailer.reminder(loan, :due_date).deliver_now
 
     expect(log.string).to start_with("INFO: Email not sent, logged instead")
     expect(log.string).to include(
@@ -46,8 +46,8 @@ RSpec.describe LogDelivery do
   end
 
   it "logs every email it delivers" do
-    LoanMailer.three_days_reminder(loan).deliver_now
-    LoanMailer.due_date_reminder(loan).deliver_now
+    LoanMailer.reminder(loan, :three_days).deliver_now
+    LoanMailer.reminder(loan, :due_date).deliver_now
 
     expect(log.string.scan("Email not sent, logged instead").size).to eq(2)
   end

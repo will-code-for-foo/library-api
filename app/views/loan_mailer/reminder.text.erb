@@ -1,0 +1,5 @@
+Hello <%= @loan.reader.name %>,
+
+"<%= @loan.book.title %>" by <%= @loan.book.author %> (serial number <%= @loan.book.serial_number %>) is due <%= @due %>, on <%= @loan.due_on %>.
+
+Please return it to the library by <%= @loan.due_on %>.

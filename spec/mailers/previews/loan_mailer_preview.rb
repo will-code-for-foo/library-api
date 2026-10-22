@@ -1,23 +1,20 @@
 # Preview all emails at http://localhost:3000/rails/mailers/loan_mailer
+# Every reminder of Loan::REMINDERS has a preview named after it, e.g. /rails/mailers/loan_mailer/three_days
 class LoanMailerPreview < ActionMailer::Preview
-  # Preview this email at http://localhost:3000/rails/mailers/loan_mailer/three_days_reminder
-  def three_days_reminder
-    LoanMailer.three_days_reminder(sample_loan(due_in: 3))
-  end
-
-  # Preview this email at http://localhost:3000/rails/mailers/loan_mailer/due_date_reminder
-  def due_date_reminder
-    LoanMailer.due_date_reminder(sample_loan(due_in: 0))
+  Loan::REMINDERS.each_key do |kind|
+    define_method(kind) { LoanMailer.reminder(sample_loan(kind), kind) }
   end
 
   private
 
-  def sample_loan(due_in:)
+  def sample_loan(kind)
+    due_on = Date.current + Loan::REMINDERS.fetch(kind)[:days_before_due]
+
     Loan.new(
       book: Book.new(serial_number: "000123", title: "Clean Code", author: "Robert C. Martin"),
       reader: Reader.new(card_number: "000456", name: "Ann Kowalska", email: "ann@example.com"),
-      borrowed_at: (30 - due_in).days.ago,
-      due_on: Date.current + due_in
+      borrowed_at: due_on.in_time_zone - Loan::LOAN_PERIOD,
+      due_on:
     )
   end
 end

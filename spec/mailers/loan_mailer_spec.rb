@@ -25,8 +25,8 @@ RSpec.describe LoanMailer, type: :mailer do
     end
   end
 
-  describe "three_days_reminder" do
-    let(:mail) { described_class.three_days_reminder(loan) }
+  describe "reminder 3 days before the due date" do
+    let(:mail) { described_class.reminder(loan, :three_days) }
 
     it_behaves_like "a reminder about the loan"
 
@@ -36,24 +36,46 @@ RSpec.describe LoanMailer, type: :mailer do
     end
   end
 
-  describe "due_date_reminder" do
-    let(:mail) { described_class.due_date_reminder(loan) }
+  describe "reminder on the due date" do
+    let(:mail) { described_class.reminder(loan, :due_date) }
 
     it_behaves_like "a reminder about the loan"
 
     it "says that the book is due today" do
       expect(mail.subject).to eq('Reminder: "Clean Code" is due today (2026-10-31)')
-      expect(mail.body.encoded).to include("is due today, 2026-10-31")
+      expect(mail.body.encoded).to include("is due today, on 2026-10-31")
     end
+  end
+
+  describe "the wording follows the number of days of the reminder" do
+    before do
+      stub_const("Loan::REMINDERS", { tomorrow: { days_before_due: 1, sent_at: :due_date_reminder_sent_at } })
+    end
+
+    it "uses the singular for one day" do
+      expect(described_class.reminder(loan, :tomorrow).subject).to include("is due in 1 day (")
+    end
+  end
+
+  it "rejects a reminder that does not exist" do
+    expect { described_class.reminder(loan, :next_week).message }.to raise_error(KeyError)
   end
 
   describe "previews" do
     # Only development has spec/mailers/previews among its preview paths, so load the preview by hand.
     before { require Rails.root.join("spec/mailers/previews/loan_mailer_preview") }
 
-    it "build both emails without touching the database" do
-      expect(LoanMailerPreview.new.three_days_reminder.subject).to include("is due in 3 days")
-      expect(LoanMailerPreview.new.due_date_reminder.subject).to include("is due today")
+    { three_days: "is due in 3 days", due_date: "is due today" }.each do |kind, wording|
+      it "builds the #{kind} reminder without touching the database" do
+        email = LoanMailerPreview.new.public_send(kind)
+
+        expect(email.to).to eq([ "ann@example.com" ])
+        expect(email.subject).to include(wording)
+      end
+    end
+
+    it "has a preview for every reminder" do
+      expect(LoanMailerPreview.emails).to match_array(Loan::REMINDERS.keys.map(&:to_s))
     end
   end
 end

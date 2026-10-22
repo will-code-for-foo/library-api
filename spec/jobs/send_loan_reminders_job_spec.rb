@@ -8,7 +8,7 @@ RSpec.describe SendLoanRemindersJob, type: :job do
   let!(:loan) { create(:loan, book: create(:book, title: 'Clean Code'), reader:, borrowed_at:) }
 
   def run_on(date)
-    travel_to(date.in_time_zone.change(hour: 8)) { described_class.perform_now }
+    described_class.perform_now(date)
   end
 
   def sent
@@ -45,6 +45,12 @@ RSpec.describe SendLoanRemindersJob, type: :job do
       three_days_before => [ 'Reminder: "Clean Code" is due in 3 days (2026-10-31)' ],
       due_date => [ 'Reminder: "Clean Code" is due today (2026-10-31)' ]
     )
+  end
+
+  it 'uses the current date when it is not given one' do
+    travel_to(Time.zone.local(2026, 10, 28, 8)) { described_class.perform_now }
+
+    expect(sent.size).to eq(1)
   end
 
   it 'sends each reminder at most once, however often it runs' do
@@ -99,5 +105,40 @@ RSpec.describe SendLoanRemindersJob, type: :job do
 
     expect(other.reload.three_days_reminder_sent_at).to be_nil
     expect(sent.size).to eq(1)
+  end
+
+  context 'when the email of one loan cannot be sent' do
+    let!(:other_loan) { create(:loan, book: create(:book, title: 'Refactoring'), reader:, borrowed_at: borrowed_at + 1.second) }
+    let(:failing) { true }
+
+    before do
+      allow(Rails.logger).to receive(:error)
+      allow(LoanMailer).to receive(:reminder).and_wrap_original do |original, loan_to_remind, kind|
+        raise 'mail server down' if failing && loan_to_remind.id == loan.id
+
+        original.call(loan_to_remind, kind)
+      end
+    end
+
+    it 'still reminds the other readers and logs the error' do
+      run_on(three_days_before)
+
+      expect(sent.map(&:subject)).to eq([ 'Reminder: "Refactoring" is due in 3 days (2026-10-31)' ])
+      expect(Rails.logger).to have_received(:error).with(/three_days reminder of loan #{loan.id}: RuntimeError: mail server down/)
+    end
+
+    it 'gives the reminder back, so that the next run sends it and nothing else again' do
+      run_on(three_days_before)
+      expect(loan.reload.three_days_reminder_sent_at).to be_nil
+      expect(other_loan.reload.three_days_reminder_sent_at).to be_present
+
+      allow(LoanMailer).to receive(:reminder).and_call_original
+      run_on(three_days_before)
+
+      expect(sent.map(&:subject)).to eq([
+        'Reminder: "Refactoring" is due in 3 days (2026-10-31)',
+        'Reminder: "Clean Code" is due in 3 days (2026-10-31)'
+      ])
+    end
   end
 end
